@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" role="img" aria-label="Campus architecture illustration">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset=".55" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1200" fill="#020617"/>
+  <circle cx="960" cy="190" r="220" fill="url(#g)" opacity=".38"/>
+  <circle cx="220" cy="930" r="280" fill="#14b8a6" opacity=".24"/>
+  <g fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="3">
+    <path d="M220 800h760M280 800V515l320-150 320 150v285M365 800V570h470v230"/>
+    <path d="M600 365v435M450 630h90M660 630h90M450 710h90M660 710h90"/>
+    <path d="M235 515h730L600 330 235 515Z"/>
+    <path d="M315 870h570M375 940h450"/>
+  </g>
+</svg>
