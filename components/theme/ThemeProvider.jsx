@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ThemeContext } from '@/components/theme/theme-context';
 export function ThemeProvider({ children }) {
-    const [theme, setTheme] = useState(() => {
-        if (typeof window === 'undefined')
-            return 'system';
-        return window.localStorage.getItem('ocms_theme') || 'system';
-    });
+    const [theme, setTheme] = useState('system');
+    useEffect(() => {
+        const stored = window.localStorage.getItem('ocms_theme') || 'system';
+        setTheme(stored);
+    }, []);
     useEffect(() => {
         const root = window.document.documentElement;
         const isDark = theme === 'dark' ||

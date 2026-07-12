@@ -110,22 +110,25 @@ function matchRoute(pathname) {
 function RoutedApp() {
     const pathname = usePathname() || '/';
     const router = useRouter();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isHydrated } = useAuth();
+    const isAuthRoute = authRoutes.has(pathname);
     useEffect(() => {
-        if (!isAuthenticated && !authRoutes.has(pathname)) {
+        if (isHydrated && !isAuthenticated && !isAuthRoute) {
             router.replace('/login');
         }
-    }, [isAuthenticated, pathname, router]);
-    if (pathname === '/login') {
-        return <AuthLayout><Login /></AuthLayout>;
+    }, [isHydrated, isAuthenticated, isAuthRoute, router]);
+    if (isAuthRoute) {
+        if (pathname === '/login') {
+            return <AuthLayout><Login /></AuthLayout>;
+        }
+        if (pathname === '/forgot-password') {
+            return <AuthLayout><ForgotPassword /></AuthLayout>;
+        }
+        if (pathname === '/reset-password') {
+            return <AuthLayout><ResetPassword /></AuthLayout>;
+        }
     }
-    if (pathname === '/forgot-password') {
-        return <AuthLayout><ForgotPassword /></AuthLayout>;
-    }
-    if (pathname === '/reset-password') {
-        return <AuthLayout><ResetPassword /></AuthLayout>;
-    }
-    if (!isAuthenticated)
+    if (!isHydrated || !isAuthenticated)
         return null;
     return <DashboardLayout>{matchRoute(pathname)}</DashboardLayout>;
 }
