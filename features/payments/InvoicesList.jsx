@@ -1,32 +1,17 @@
-/* eslint-disable react-hooks/incompatible-library */
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, ArrowUpDown, Download, Eye, MoreHorizontal, Plus, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { ArrowLeft, ArrowUpDown, Download, Eye, MoreHorizontal, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { Link } from '@/lib/router';
-import { toast } from 'sonner';
-import { z } from 'zod';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-import { formatCurrency, formatDate, invoices, paymentStatuses } from '@/features/payments/PaymentsList';
-const invoiceSchema = z.object({
-    student: z.string().trim().min(2, 'Student name is required'),
-    studentId: z.string().trim().min(3, 'Student ID is required'),
-    program: z.string().trim().min(2, 'Program is required'),
-    amount: z.coerce.number().min(1, 'Amount is required'),
-    dueDate: z.string().trim().min(1, 'Due date is required'),
-    description: z.string().trim().min(3, 'Description is required'),
-});
+import { formatCurrency, formatDate, paymentStatuses } from '@/features/payments/PaymentsList';
 const statusStyles = {
     Paid: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -40,6 +25,7 @@ function SortButton({ column, children }) {
     </Button>);
 }
 function exportInvoices(rows) {
+    if (!rows.length) return;
     const headers = ['Invoice Number', 'Student', 'Program', 'Amount', 'Balance', 'Status', 'Due Date'];
     const body = rows.map((row) => {
         const invoice = row.original;
@@ -54,7 +40,7 @@ function exportInvoices(rows) {
         ];
     });
     const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -68,17 +54,7 @@ export function InvoicesList() {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
-    const invoiceForm = useForm({
-        resolver: zodResolver(invoiceSchema),
-        defaultValues: {
-            student: '',
-            studentId: '',
-            program: '',
-            amount: '',
-            dueDate: '',
-            description: '',
-        },
-    });
+    const data = [];
     const columns = useMemo(() => [
         {
             accessorKey: 'invoiceNumber',
@@ -110,7 +86,7 @@ export function InvoicesList() {
         {
             accessorKey: 'status',
             header: 'Status',
-            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status])}>{row.original.status}</Badge>),
+            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
             accessorKey: 'dueDate',
@@ -139,18 +115,10 @@ export function InvoicesList() {
         },
     ], []);
     const table = useReactTable({
-        data: invoices,
+        data,
         columns,
-        state: {
-            sorting,
-            globalFilter,
-            columnFilters,
-        },
-        initialState: {
-            pagination: {
-                pageSize: 6,
-            },
-        },
+        state: { sorting, globalFilter, columnFilters },
+        initialState: { pagination: { pageSize: 6 } },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
@@ -159,13 +127,6 @@ export function InvoicesList() {
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
-    const totalInvoiced = invoices.reduce((total, invoice) => total + invoice.amount, 0);
-    const totalBalance = invoices.reduce((total, invoice) => total + invoice.balance, 0);
-    const createInvoice = (values) => {
-        toast.success(`Invoice created for ${values.student}.`);
-        invoiceForm.reset();
-    };
-    const invalidInvoice = () => toast.error('Please complete the required invoice fields.');
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
@@ -182,45 +143,6 @@ export function InvoicesList() {
             </p>
           </div>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button type="button">
-              <Plus />
-              New Invoice
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">New Invoice</h2>
-              <p className="text-sm text-muted-foreground">Create a student invoice record.</p>
-            </div>
-            <form className="grid gap-4" onSubmit={invoiceForm.handleSubmit(createInvoice, invalidInvoice)}>
-              <div className="grid gap-4 md:grid-cols-2">
-                {[
-            ['student', 'Student Name'],
-            ['studentId', 'Student ID'],
-            ['program', 'Program'],
-            ['amount', 'Amount'],
-            ['dueDate', 'Due Date'],
-            ['description', 'Description'],
-        ].map(([name, label]) => (<div key={name} className="space-y-2">
-                    <Label htmlFor={name}>{label}</Label>
-                    <Input id={name} type={name === 'amount' ? 'number' : name === 'dueDate' ? 'date' : 'text'} aria-invalid={Boolean(invoiceForm.formState.errors[name])} {...invoiceForm.register(name)}/>
-                    {invoiceForm.formState.errors[name] ? (<p className="text-xs text-destructive">{invoiceForm.formState.errors[name].message}</p>) : null}
-                  </div>))}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => invoiceForm.reset()}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  <Plus />
-                  Save Invoice
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -230,7 +152,7 @@ export function InvoicesList() {
             <CardDescription>All issued invoices</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{formatCurrency(totalInvoiced)}</p>
+            <p className="text-2xl font-semibold">{formatCurrency(0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -239,7 +161,7 @@ export function InvoicesList() {
             <CardDescription>Pending, overdue, and failed invoices</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{formatCurrency(totalBalance)}</p>
+            <p className="text-2xl font-semibold">{formatCurrency(0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -248,7 +170,7 @@ export function InvoicesList() {
             <CardDescription>Invoices not fully paid</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold">{invoices.filter((invoice) => invoice.status !== 'Paid').length}</p>
+            <p className="text-2xl font-semibold">0</p>
           </CardContent>
         </Card>
       </div>
@@ -290,9 +212,7 @@ export function InvoicesList() {
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (<TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (<TableHead key={header.id}>
-                          {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                         </TableHead>))}
                     </TableRow>))}
                 </TableHeader>
@@ -303,7 +223,7 @@ export function InvoicesList() {
                           </TableCell>))}
                       </TableRow>))) : (<TableRow>
                       <TableCell colSpan={columns.length} className="p-6">
-                        <EmptyState title="No invoices found" description="Adjust your filters or create a new invoice." actionLabel="New Invoice" onAction={() => toast.info('Use the New Invoice button above to create an invoice.')}/>
+                        <EmptyState title="No invoices found" description="Invoices will appear once they are created in the system."/>
                       </TableCell>
                     </TableRow>)}
                 </TableBody>

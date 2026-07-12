@@ -1,6 +1,4 @@
-/* eslint-disable react-hooks/incompatible-library, react-refresh/only-export-components */
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, } from 'recharts';
-import { ArrowUpDown, Banknote, CheckCircle2, CreditCard, Download, Eye, FileText, MoreHorizontal, Plus, Search, TrendingUp, } from 'lucide-react';
+import { ArrowUpDown, Download, Eye, FileText, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
@@ -17,147 +15,11 @@ import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 export const paymentStatuses = ['Paid', 'Pending', 'Overdue', 'Failed'];
 export const paymentMethods = ['Bank Transfer', 'Mobile Money', 'Card', 'Cash', 'Scholarship'];
-export const invoices = [
-    {
-        invoiceNumber: 'INV-2026-001',
-        studentId: 'STU-2026-001',
-        student: 'Amina Hassan',
-        program: 'Computer Science',
-        amount: 1280,
-        balance: 0,
-        paymentMethod: 'Bank Transfer',
-        status: 'Paid',
-        date: '2026-06-02',
-        dueDate: '2026-06-10',
-        term: 'Term 2',
-        description: 'Tuition fee installment',
-    },
-    {
-        invoiceNumber: 'INV-2026-002',
-        studentId: 'STU-2026-027',
-        student: 'Brian Otieno',
-        program: 'Business Administration',
-        amount: 940,
-        balance: 940,
-        paymentMethod: 'Mobile Money',
-        status: 'Pending',
-        date: '2026-06-03',
-        dueDate: '2026-06-18',
-        term: 'Term 2',
-        description: 'Tuition and library fees',
-    },
-    {
-        invoiceNumber: 'INV-2026-003',
-        studentId: 'STU-2026-038',
-        student: 'Chantal Niyonsaba',
-        program: 'Information Systems',
-        amount: 1160,
-        balance: 0,
-        paymentMethod: 'Card',
-        status: 'Paid',
-        date: '2026-06-05',
-        dueDate: '2026-06-15',
-        term: 'Term 2',
-        description: 'Tuition fee installment',
-    },
-    {
-        invoiceNumber: 'INV-2026-004',
-        studentId: 'STU-2026-051',
-        student: 'Daniel Mwangi',
-        program: 'Software Engineering',
-        amount: 1325,
-        balance: 1325,
-        paymentMethod: 'Bank Transfer',
-        status: 'Overdue',
-        date: '2026-05-28',
-        dueDate: '2026-06-08',
-        term: 'Term 2',
-        description: 'Tuition and lab fees',
-    },
-    {
-        invoiceNumber: 'INV-2026-005',
-        studentId: 'STU-2026-063',
-        student: 'Esther Wanjiku',
-        program: 'Data Science',
-        amount: 1490,
-        balance: 0,
-        paymentMethod: 'Scholarship',
-        status: 'Paid',
-        date: '2026-06-07',
-        dueDate: '2026-06-16',
-        term: 'Term 2',
-        description: 'Sponsored tuition payment',
-    },
-    {
-        invoiceNumber: 'INV-2026-006',
-        studentId: 'STU-2026-074',
-        student: 'Farah Mohamed',
-        program: 'Cybersecurity',
-        amount: 1210,
-        balance: 1210,
-        paymentMethod: 'Cash',
-        status: 'Failed',
-        date: '2026-06-08',
-        dueDate: '2026-06-20',
-        term: 'Term 2',
-        description: 'Tuition fee installment',
-    },
-    {
-        invoiceNumber: 'INV-2026-007',
-        studentId: 'STU-2026-088',
-        student: 'Grace Njeri',
-        program: 'Accounting',
-        amount: 875,
-        balance: 0,
-        paymentMethod: 'Mobile Money',
-        status: 'Paid',
-        date: '2026-06-10',
-        dueDate: '2026-06-22',
-        term: 'Term 2',
-        description: 'Tuition and activity fees',
-    },
-    {
-        invoiceNumber: 'INV-2026-008',
-        studentId: 'STU-2026-096',
-        student: 'Hassan Ali',
-        program: 'Networking',
-        amount: 1040,
-        balance: 520,
-        paymentMethod: 'Card',
-        status: 'Pending',
-        date: '2026-06-12',
-        dueDate: '2026-06-24',
-        term: 'Term 2',
-        description: 'Partial tuition payment',
-    },
-];
-export const monthlyRevenue = [
-    { month: 'Jan', revenue: 14800 },
-    { month: 'Feb', revenue: 17250 },
-    { month: 'Mar', revenue: 18920 },
-    { month: 'Apr', revenue: 20440 },
-    { month: 'May', revenue: 22680 },
-    { month: 'Jun', revenue: 25210 },
-];
-export const collectionTrend = [
-    { month: 'Jan', rate: 72 },
-    { month: 'Feb', rate: 76 },
-    { month: 'Mar', rate: 81 },
-    { month: 'Apr', rate: 84 },
-    { month: 'May', rate: 86 },
-    { month: 'Jun', rate: 89 },
-];
 const statusStyles = {
     Paid: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     Overdue: 'bg-destructive/10 text-destructive',
     Failed: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
-};
-const cardToneClasses = {
-    emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    sky: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    teal: 'bg-teal-500/10 text-teal-700 dark:text-teal-300',
 };
 export function formatCurrency(value) {
     return new Intl.NumberFormat('en-US', {
@@ -167,17 +29,12 @@ export function formatCurrency(value) {
     }).format(value);
 }
 export function formatDate(value) {
+    if (!value) return '-';
     return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
     }).format(new Date(value));
-}
-export function getPaymentByInvoiceNumber(invoiceNumber) {
-    return invoices.find((invoice) => invoice.invoiceNumber === invoiceNumber);
-}
-export function getPaymentsByStudentId(studentId) {
-    return invoices.filter((invoice) => invoice.studentId === studentId);
 }
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -185,83 +42,8 @@ function SortButton({ column, children }) {
       <ArrowUpDown className="ml-1 size-3.5"/>
     </Button>);
 }
-function FinanceMetricCard({ title, value, description, icon: Icon, tone }) {
-    return (<Card className="overflow-hidden">
-      <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal">{value}</p>
-        </div>
-        <span className={cn('flex size-10 items-center justify-center rounded-md', cardToneClasses[tone])}>
-          <Icon className="size-5"/>
-        </span>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>);
-}
-function ChartTooltip({ active, payload, label, formatter }) {
-    if (!active || !payload?.length) {
-        return null;
-    }
-    const item = payload[0];
-    return (<div className="rounded-md border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
-      <p className="mb-1 font-medium">{label}</p>
-      <p className="text-muted-foreground">
-        {item.name}: <span className="font-medium text-foreground">{formatter(item.value)}</span>
-      </p>
-    </div>);
-}
-function RevenueChart() {
-    return (<Card>
-      <CardHeader>
-        <CardTitle className="text-base">Monthly Revenue</CardTitle>
-        <CardDescription>Collected revenue across the current academic term.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyRevenue} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--border))"/>
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={12} stroke="rgb(var(--muted-foreground))" fontSize={12}/>
-              <YAxis axisLine={false} tickLine={false} tickMargin={10} width={44} stroke="rgb(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `$${Math.round(value / 1000)}k`}/>
-              <Tooltip cursor={{ fill: 'rgb(var(--muted))', opacity: 0.55 }} content={<ChartTooltip formatter={formatCurrency}/>}/>
-              <Bar dataKey="revenue" name="Revenue" fill="rgb(var(--primary))" radius={[6, 6, 0, 0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>);
-}
-function CollectionTrendChart() {
-    return (<Card>
-      <CardHeader>
-        <CardTitle className="text-base">Collection Trend</CardTitle>
-        <CardDescription>Payment collection rate over the last six months.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={collectionTrend} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-              <defs>
-                <linearGradient id="collectionTrend" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="5%" stopColor="rgb(var(--accent))" stopOpacity={0.35}/>
-                  <stop offset="95%" stopColor="rgb(var(--accent))" stopOpacity={0.03}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--border))"/>
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={12} stroke="rgb(var(--muted-foreground))" fontSize={12}/>
-              <YAxis axisLine={false} tickLine={false} tickMargin={10} width={42} stroke="rgb(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `${value}%`}/>
-              <Tooltip cursor={{ stroke: 'rgb(var(--accent))', strokeOpacity: 0.2, strokeWidth: 2 }} content={<ChartTooltip formatter={(value) => `${value}%`}/>}/>
-              <Area type="monotone" dataKey="rate" name="Collection Rate" stroke="rgb(var(--accent))" strokeWidth={2.5} fill="url(#collectionTrend)" activeDot={{ r: 5, fill: 'rgb(var(--accent))', stroke: 'rgb(var(--background))', strokeWidth: 2 }}/>
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>);
-}
 function exportPayments(rows) {
+    if (!rows.length) return;
     const headers = ['Invoice Number', 'Student', 'Amount', 'Payment Method', 'Status', 'Date'];
     const body = rows.map((row) => {
         const payment = row.original;
@@ -275,7 +57,7 @@ function exportPayments(rows) {
         ];
     });
     const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -315,7 +97,7 @@ function PaymentsDataTable({ data, isStudent = false }) {
         {
             accessorKey: 'status',
             header: 'Status',
-            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status])}>{row.original.status}</Badge>),
+            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
             accessorKey: 'date',
@@ -429,7 +211,7 @@ function PaymentsDataTable({ data, isStudent = false }) {
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No payments found" description="Adjust your filters or open invoices to create a payment record." actionLabel={isStudent ? undefined : 'Open Invoices'} actionTo={isStudent ? undefined : '/payments/invoices'}/>
+                  <EmptyState title="No payments found" description="Payments will appear once invoices are created and processed." actionLabel={isStudent ? undefined : 'Open Invoices'} actionTo={isStudent ? undefined : '/payments/invoices'}/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
@@ -457,12 +239,6 @@ function PaymentsDataTable({ data, isStudent = false }) {
 export function PaymentsList() {
     const { user } = useAuth();
     const isStudent = user?.role === ROLES.STUDENT;
-    const visibleInvoices = isStudent ? getPaymentsByStudentId(user.studentId) : invoices;
-    const paidInvoices = visibleInvoices.filter((invoice) => invoice.status === 'Paid');
-    const pendingInvoices = visibleInvoices.filter((invoice) => invoice.status !== 'Paid');
-    const totalRevenue = paidInvoices.reduce((total, invoice) => total + invoice.amount, 0);
-    const pendingPayments = pendingInvoices.reduce((total, invoice) => total + invoice.balance, 0);
-    const collectionRate = visibleInvoices.length ? Math.round((paidInvoices.length / visibleInvoices.length) * 100) : 0;
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -483,18 +259,6 @@ export function PaymentsList() {
           </Button>)}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <FinanceMetricCard title={isStudent ? 'Paid Amount' : 'Total Revenue'} value={formatCurrency(totalRevenue)} description={isStudent ? 'Collected from your paid invoices' : 'Collected from paid invoices'} icon={Banknote} tone="emerald"/>
-        <FinanceMetricCard title="Pending Payments" value={formatCurrency(pendingPayments)} description={`${pendingInvoices.length} invoices need attention`} icon={CreditCard} tone="amber"/>
-        <FinanceMetricCard title="Paid Invoices" value={paidInvoices.length} description={`${paidInvoices.length} of ${visibleInvoices.length} invoices paid`} icon={CheckCircle2} tone="sky"/>
-        <FinanceMetricCard title="Collection Rate" value={`${collectionRate}%`} description="Current term payment collection" icon={TrendingUp} tone="teal"/>
-      </div>
-
-      {!isStudent && (<div className="grid gap-4 xl:grid-cols-2">
-          <RevenueChart />
-          <CollectionTrendChart />
-        </div>)}
-
       <Card>
         <CardHeader>
           <CardTitle>{isStudent ? 'My Payment Records' : 'Payment Records'}</CardTitle>
@@ -505,7 +269,7 @@ export function PaymentsList() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <PaymentsDataTable data={visibleInvoices} isStudent={isStudent}/>
+          <PaymentsDataTable data={[]} isStudent={isStudent}/>
         </CardContent>
       </Card>
     </div>);

@@ -1,13 +1,13 @@
-import { Loader2, Save } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from '@/lib/router';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { examCourses, examStatuses, saveExam } from '@/features/exams/ExamsList';
+import { examStatuses } from '@/features/exams/ExamsList';
+import { createExamSchedule } from '@/services/exams.service';
 const emptyExam = {
     name: '',
     course: '',
@@ -16,29 +16,17 @@ const emptyExam = {
     status: 'Scheduled',
 };
 function FieldError({ message }) {
-    if (!message) {
-        return null;
-    }
+    if (!message) return null;
     return <p className="text-sm text-destructive">{message}</p>;
 }
 function validateExam(values) {
     const errors = {};
     const totalMarks = Number(values.totalMarks);
-    if (!values.name.trim()) {
-        errors.name = 'Exam name is required.';
-    }
-    if (!values.course) {
-        errors.course = 'Course is required.';
-    }
-    if (!values.date) {
-        errors.date = 'Date is required.';
-    }
-    if (!Number.isInteger(totalMarks) || totalMarks < 1 || totalMarks > 500) {
-        errors.totalMarks = 'Total marks must be a whole number from 1 to 500.';
-    }
-    if (!values.status) {
-        errors.status = 'Status is required.';
-    }
+    if (!values.name.trim()) errors.name = 'Exam name is required.';
+    if (!values.course) errors.course = 'Course is required.';
+    if (!values.date) errors.date = 'Date is required.';
+    if (!Number.isInteger(totalMarks) || totalMarks < 1 || totalMarks > 500) errors.totalMarks = 'Total marks must be a whole number from 1 to 500.';
+    if (!values.status) errors.status = 'Status is required.';
     return errors;
 }
 export function AddExam() {
@@ -46,7 +34,6 @@ export function AddExam() {
     const [values, setValues] = useState(emptyExam);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [saved, setSaved] = useState(false);
     function updateField(name, value) {
         setValues((currentValues) => ({ ...currentValues, [name]: value }));
         setErrors((currentErrors) => ({ ...currentErrors, [name]: undefined }));
@@ -64,10 +51,15 @@ export function AddExam() {
             return;
         }
         setIsSubmitting(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 500));
-        saveExam(normalizedValues);
-        setSaved(true);
-        navigate('/exams');
+        try {
+            await createExamSchedule(normalizedValues);
+            toast.success('Exam schedule created.');
+            navigate('/exams');
+        }
+        catch (error) {
+            toast.error(error.message || 'Failed to create exam schedule.');
+            setIsSubmitting(false);
+        }
     }
     return (<div className="space-y-6">
       <div>
@@ -82,30 +74,16 @@ export function AddExam() {
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {saved && (<Alert variant="success">
-                <AlertTitle>Exam saved</AlertTitle>
-                <AlertDescription>This mock form is ready for backend integration.</AlertDescription>
-              </Alert>)}
-
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Exam Name</Label>
-                <Input id="name" placeholder="Programming Midterm" value={values.name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(event) => updateField('name', event.target.value)}/>
+                <Label htmlFor="title">Exam Title</Label>
+                <Input id="title" placeholder="Programming Midterm" value={values.name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(event) => updateField('name', event.target.value)}/>
                 <FieldError message={errors.name}/>
               </div>
 
               <div className="space-y-2">
-                <Label>Course</Label>
-                <Select value={values.course} disabled={isSubmitting} onValueChange={(value) => updateField('course', value)}>
-                  <SelectTrigger aria-invalid={Boolean(errors.course)}>
-                    <SelectValue placeholder="Select course"/>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {examCourses.map((course) => (<SelectItem key={course} value={course}>
-                        {course}
-                      </SelectItem>))}
-                  </SelectContent>
-                </Select>
+                <Label>Course ID</Label>
+                <Input placeholder="Course ID" value={values.course} disabled={isSubmitting} aria-invalid={Boolean(errors.course)} onChange={(event) => updateField('course', event.target.value)}/>
                 <FieldError message={errors.course}/>
               </div>
 
@@ -142,8 +120,7 @@ export function AddExam() {
                 <Link to="/exams">Cancel</Link>
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="animate-spin"/> : <Save />}
-                {isSubmitting ? 'Saving' : 'Save Exam'}
+                {isSubmitting ? 'Saving...' : 'Save Exam'}
               </Button>
             </div>
           </form>

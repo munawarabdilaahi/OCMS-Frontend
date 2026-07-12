@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/incompatible-library */
 import { useState, useCallback } from 'react';
 import { Link } from '@/lib/router';
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from "@tanstack/react-table";
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { cn } from '@/lib/cn'; // Assuming cn utility for conditional classnames
+import { cn } from '@/lib/cn';
 const statusStyles = {
     Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     'On Leave': 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -54,7 +53,7 @@ export function TeachersDataTable({ data, onDelete }) {
             header: "Status",
             cell: ({ row }) => {
                 const status = row.getValue("status");
-                return (<Badge className={cn(statusStyles[status])}>
+                return (<Badge className={cn(statusStyles[status] || '')}>
             {status}
           </Badge>);
             },
@@ -106,6 +105,7 @@ export function TeachersDataTable({ data, onDelete }) {
         onGlobalFilterChange: setGlobalFilter,
     });
     const exportData = useCallback(() => {
+        if (!data.length) return;
         const headers = [
             "Employee ID",
             "Full Name",
@@ -143,10 +143,6 @@ export function TeachersDataTable({ data, onDelete }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => table.getColumn("department")?.setFilterValue("")}>All</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => table.getColumn("department")?.setFilterValue("Computer Science")}>Computer Science</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => table.getColumn("department")?.setFilterValue("Mathematics")}>Mathematics</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => table.getColumn("department")?.setFilterValue("Physics")}>Physics</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => table.getColumn("department")?.setFilterValue("Engineering")}>Engineering</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <Button variant="outline" onClick={exportData}>
@@ -170,7 +166,7 @@ export function TeachersDataTable({ data, onDelete }) {
                     </TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No teachers found" description="Adjust your filters or add a new teacher." actionLabel="Add Teacher" actionTo="/teachers/add"/>
+                  <EmptyState title="No teachers found" description="Teacher records will be available once the backend is connected."/>
                 </TableCell>
               </TableRow>)}
           </TableBody>

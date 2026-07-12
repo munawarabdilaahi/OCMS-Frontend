@@ -1,40 +1,19 @@
-/* eslint-disable react-hooks/incompatible-library, react-refresh/only-export-components */
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, Download, Eye, GraduationCap, MoreHorizontal, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from '@/lib/router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
+import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
-export const resultCourses = [
-    'Introduction to Programming',
-    'Financial Accounting',
-    'Structural Analysis',
-    'Clinical Foundations',
-    'Curriculum Design',
-    'Quantum Mechanics',
-];
-export const defaultResults = [
-    { studentId: 'STU-2026-001', studentName: 'Amina Hassan', course: 'Introduction to Programming', marks: 92, grade: 'A', gpa: 4.0 },
-    { studentId: 'STU-2026-001', studentName: 'Amina Hassan', course: 'Financial Accounting', marks: 84, grade: 'B+', gpa: 3.4 },
-    { studentId: 'STU-2026-001', studentName: 'Amina Hassan', course: 'Clinical Foundations', marks: 88, grade: 'A-', gpa: 3.7 },
-    { studentId: 'STU-2026-002', studentName: 'Daniel Okafor', course: 'Financial Accounting', marks: 79, grade: 'B', gpa: 3.0 },
-    { studentId: 'STU-2026-002', studentName: 'Daniel Okafor', course: 'Curriculum Design', marks: 73, grade: 'C+', gpa: 2.4 },
-    { studentId: 'STU-2026-003', studentName: 'Leila Mohamed', course: 'Clinical Foundations', marks: 91, grade: 'A', gpa: 4.0 },
-    { studentId: 'STU-2026-003', studentName: 'Leila Mohamed', course: 'Quantum Mechanics', marks: 69, grade: 'C', gpa: 2.0 },
-    { studentId: 'STU-2026-004', studentName: 'Mateo Rivera', course: 'Structural Analysis', marks: 86, grade: 'A-', gpa: 3.7 },
-    { studentId: 'STU-2026-005', studentName: 'Grace Kimani', course: 'Curriculum Design', marks: 95, grade: 'A', gpa: 4.0 },
-    { studentId: 'STU-2026-006', studentName: 'Noah Bennett', course: 'Introduction to Programming', marks: 81, grade: 'B+', gpa: 3.4 },
-    { studentId: 'STU-2026-007', studentName: 'Sara Patel', course: 'Financial Accounting', marks: 89, grade: 'A-', gpa: 3.7 },
-    { studentId: 'STU-2026-008', studentName: 'Omar Farah', course: 'Structural Analysis', marks: 76, grade: 'B', gpa: 3.0 },
-];
+import { getExamResults } from '@/services/exams.service';
 const gradeStyles = {
     A: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     'A-': 'bg-teal-500/10 text-teal-700 dark:text-teal-300',
@@ -43,32 +22,6 @@ const gradeStyles = {
     'C+': 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     C: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
 };
-export function getResults() {
-    return defaultResults;
-}
-export function getStudentResults(studentId) {
-    return getResults().filter((result) => result.studentId === studentId);
-}
-export function getStudentResultSummary(studentId) {
-    const results = getStudentResults(studentId);
-    const averageGpa = results.length ? results.reduce((sum, result) => sum + result.gpa, 0) / results.length : 0;
-    const averageMarks = results.length ? Math.round(results.reduce((sum, result) => sum + result.marks, 0) / results.length) : 0;
-    return {
-        student: results[0],
-        results,
-        averageGpa,
-        averageMarks,
-        gradeDistribution: Object.entries(results.reduce((distribution, result) => {
-            distribution[result.grade] = (distribution[result.grade] ?? 0) + 1;
-            return distribution;
-        }, {})).map(([grade, count]) => ({ grade, count })),
-        performance: results.map((result) => ({
-            course: result.course,
-            marks: result.marks,
-            gpa: result.gpa,
-        })),
-    };
-}
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
       {children}
@@ -76,13 +29,14 @@ function SortButton({ column, children }) {
     </Button>);
 }
 function exportResults(rows) {
+    if (!rows.length) return;
     const headers = ['Student ID', 'Student Name', 'Course', 'Marks', 'Grade', 'GPA'];
     const body = rows.map((row) => {
         const result = row.original;
         return [result.studentId, result.studentName, result.course, result.marks, result.grade, result.gpa];
     });
     const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -96,6 +50,7 @@ function ResultsDataTable({ data, initialCourse, isStudent = false }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState(() => (initialCourse ? [{ id: 'course', value: initialCourse }] : []));
+    const allCourses = useMemo(() => [...new Set(data.map((r) => r.course).filter(Boolean))], [data]);
     const columns = useMemo(() => [
         {
             accessorKey: 'studentId',
@@ -113,16 +68,17 @@ function ResultsDataTable({ data, initialCourse, isStudent = false }) {
         {
             accessorKey: 'marks',
             header: ({ column }) => <SortButton column={column}>Marks</SortButton>,
+            cell: ({ row }) => row.original.marks ?? row.original.total_score ?? '-',
         },
         {
             accessorKey: 'grade',
             header: 'Grade',
-            cell: ({ row }) => <Badge className={cn('whitespace-nowrap', gradeStyles[row.original.grade])}>{row.original.grade}</Badge>,
+            cell: ({ row }) => <Badge className={cn('whitespace-nowrap', gradeStyles[row.original.grade] || '')}>{row.original.grade || '-'}</Badge>,
         },
         {
             accessorKey: 'gpa',
             header: ({ column }) => <SortButton column={column}>GPA</SortButton>,
-            cell: ({ row }) => Number(row.original.gpa).toFixed(1),
+            cell: ({ row }) => row.original.gpa ? Number(row.original.gpa).toFixed(1) : '-',
         },
         {
             id: 'actions',
@@ -172,7 +128,7 @@ function ResultsDataTable({ data, initialCourse, isStudent = false }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              {resultCourses.map((course) => (<SelectItem key={course} value={course}>
+              {allCourses.map((course) => (<SelectItem key={course} value={course}>
                   {course}
                 </SelectItem>))}
             </SelectContent>
@@ -198,8 +154,8 @@ function ResultsDataTable({ data, initialCourse, isStudent = false }) {
             {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No results found.
+                <TableCell colSpan={columns.length} className="p-6">
+                  <EmptyState title="No results found" description="Results will appear once exams are graded and published."/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
@@ -229,7 +185,19 @@ export function ResultsList() {
     const isStudent = user?.role === ROLES.STUDENT;
     const [searchParams] = useSearchParams();
     const course = searchParams.get('course');
-    const results = isStudent ? getStudentResults(user.studentId) : getResults();
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        const params = {};
+        if (course) params.course_id = course;
+        getExamResults(params)
+            .then((response) => {
+            const data = Array.isArray(response) ? response : [];
+            setResults(data);
+        })
+            .catch(() => setResults([]))
+            .finally(() => setLoading(false));
+    }, [course]);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -257,7 +225,13 @@ export function ResultsList() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResultsDataTable data={results} initialCourse={course} isStudent={isStudent}/>
+          {loading ? (
+            <div className="flex items-center justify-center p-12">
+              <p className="text-muted-foreground">Loading results...</p>
+            </div>
+          ) : (
+            <ResultsDataTable data={results} initialCourse={course} isStudent={isStudent}/>
+          )}
         </CardContent>
       </Card>
     </div>);

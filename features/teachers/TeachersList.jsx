@@ -1,19 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from '@/lib/router';
 import { UserPlus } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TeachersDataTable } from '@/components/teachers/TeachersDataTable';
-import { deleteTeacher, getTeachers } from './teachers-data';
 export default function TeachersList() {
     const navigate = useNavigate();
-    const [data, setData] = useState(() => getTeachers());
-    const handleDelete = (id) => {
-        deleteTeacher(id);
-        setData(getTeachers());
-        toast.success('Teacher deleted successfully.');
-    };
+    const [data] = useState([]);
+    const handleDelete = () => {};
     return (<div className="p-6 space-y-4">
       <div className="flex justify-between items-center">
         <div>

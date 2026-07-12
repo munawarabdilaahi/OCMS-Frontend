@@ -1,10 +1,8 @@
-/* eslint-disable react-hooks/incompatible-library, react-refresh/only-export-components */
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, Building2, Download, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,107 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 export const departmentStatuses = ['Active', 'Inactive', 'Archived'];
-export const headOfDepartmentOptions = [
-    'Dr. Sarah Johnson',
-    'Michael Chen',
-    'Dr. Emily Brown',
-    'James Wilson',
-    'Dr. Grace Kimani',
-    'Prof. Amina Hassan',
-];
-export const defaultDepartments = [
-    {
-        code: 'CS',
-        name: 'Computer Science',
-        description: 'Software engineering, data systems, networking, and computing programs.',
-        headOfDepartment: 'Dr. Sarah Johnson',
-        totalTeachers: 18,
-        totalStudents: 420,
-        status: 'Active',
-    },
-    {
-        code: 'BUS',
-        name: 'Business',
-        description: 'Accounting, management, finance, entrepreneurship, and business administration.',
-        headOfDepartment: 'Michael Chen',
-        totalTeachers: 14,
-        totalStudents: 365,
-        status: 'Active',
-    },
-    {
-        code: 'ENG',
-        name: 'Engineering',
-        description: 'Civil, electrical, mechanical, and applied engineering courses.',
-        headOfDepartment: 'James Wilson',
-        totalTeachers: 22,
-        totalStudents: 510,
-        status: 'Active',
-    },
-    {
-        code: 'HS',
-        name: 'Health Sciences',
-        description: 'Nursing, public health, clinical sciences, and allied health programs.',
-        headOfDepartment: 'Dr. Grace Kimani',
-        totalTeachers: 16,
-        totalStudents: 288,
-        status: 'Active',
-    },
-    {
-        code: 'EDU',
-        name: 'Education',
-        description: 'Teacher training, curriculum studies, and educational leadership.',
-        headOfDepartment: 'Prof. Amina Hassan',
-        totalTeachers: 11,
-        totalStudents: 240,
-        status: 'Inactive',
-    },
-    {
-        code: 'PHY',
-        name: 'Physics',
-        description: 'General physics, theoretical physics, laboratory science, and research courses.',
-        headOfDepartment: 'Dr. Emily Brown',
-        totalTeachers: 9,
-        totalStudents: 132,
-        status: 'Archived',
-    },
-];
-const storageKey = 'ocms-departments';
 const statusStyles = {
     Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     Inactive: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     Archived: 'bg-muted text-muted-foreground',
 };
-function readStoredDepartments() {
-    if (typeof window === 'undefined') {
-        return defaultDepartments;
-    }
-    try {
-        const storedDepartments = window.localStorage.getItem(storageKey);
-        return storedDepartments ? JSON.parse(storedDepartments) : defaultDepartments;
-    }
-    catch {
-        return defaultDepartments;
-    }
-}
-export function getDepartments() {
-    return readStoredDepartments();
-}
-export function getDepartmentByCode(code) {
-    return getDepartments().find((department) => department.code === code);
-}
-export function saveDepartment(department) {
-    const departments = getDepartments();
-    const nextDepartments = departments.some((item) => item.code === department.code)
-        ? departments.map((item) => (item.code === department.code ? { ...item, ...department } : item))
-        : [{ totalTeachers: 0, totalStudents: 0, ...department }, ...departments];
-    window.localStorage.setItem(storageKey, JSON.stringify(nextDepartments));
-    return nextDepartments;
-}
-export function deleteDepartment(code) {
-    const nextDepartments = getDepartments().filter((department) => department.code !== code);
-    window.localStorage.setItem(storageKey, JSON.stringify(nextDepartments));
-    return nextDepartments;
-}
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
       {children}
@@ -122,6 +24,7 @@ function SortButton({ column, children }) {
     </Button>);
 }
 function exportDepartments(rows) {
+    if (!rows.length) return;
     const headers = [
         'Department Code',
         'Department Name',
@@ -142,7 +45,7 @@ function exportDepartments(rows) {
         ];
     });
     const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -152,7 +55,7 @@ function exportDepartments(rows) {
     anchor.click();
     URL.revokeObjectURL(url);
 }
-function DepartmentsDataTable({ data, onDelete }) {
+function DepartmentsDataTable({ data }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
@@ -173,17 +76,17 @@ function DepartmentsDataTable({ data, onDelete }) {
         {
             accessorKey: 'totalTeachers',
             header: ({ column }) => <SortButton column={column}>Total Teachers</SortButton>,
-            cell: ({ row }) => <span>{row.original.totalTeachers.toLocaleString()}</span>,
+            cell: ({ row }) => <span>{(row.original.totalTeachers || 0).toLocaleString()}</span>,
         },
         {
             accessorKey: 'totalStudents',
             header: ({ column }) => <SortButton column={column}>Total Students</SortButton>,
-            cell: ({ row }) => <span>{row.original.totalStudents.toLocaleString()}</span>,
+            cell: ({ row }) => <span>{(row.original.totalStudents || 0).toLocaleString()}</span>,
         },
         {
             accessorKey: 'status',
             header: 'Status',
-            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status])}>{row.original.status}</Badge>),
+            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
             id: 'actions',
@@ -203,14 +106,14 @@ function DepartmentsDataTable({ data, onDelete }) {
                   Edit
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.code)}>
+              <DropdownMenuItem className="text-destructive">
                 <Trash2 />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>),
         },
-    ], [onDelete]);
+    ], []);
     const table = useReactTable({
         data,
         columns,
@@ -280,7 +183,7 @@ function DepartmentsDataTable({ data, onDelete }) {
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No departments found" description="Adjust your filters or add a new department." actionLabel="Add Department" actionTo="/departments/add"/>
+                  <EmptyState title="No departments found" description="Departments will be available once the backend is connected."/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
@@ -306,16 +209,7 @@ function DepartmentsDataTable({ data, onDelete }) {
     </div>);
 }
 export function DepartmentsList() {
-    const [departments, setDepartments] = useState(() => getDepartments());
-    const [deletedCode, setDeletedCode] = useState('');
-    const handleDelete = useCallback((code) => {
-        const confirmed = window.confirm(`Delete department ${code}? This only updates mock frontend data.`);
-        if (!confirmed) {
-            return;
-        }
-        setDepartments(deleteDepartment(code));
-        setDeletedCode(code);
-    }, []);
+    const [departments] = useState([]);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -329,18 +223,13 @@ export function DepartmentsList() {
         </span>
       </div>
 
-      {deletedCode && (<Alert>
-          <AlertTitle>Department removed</AlertTitle>
-          <AlertDescription>{deletedCode} was removed from the mock table data.</AlertDescription>
-        </Alert>)}
-
       <Card>
         <CardHeader>
           <CardTitle>Department Directory</CardTitle>
           <CardDescription>Search, filter, paginate, export, and manage department records.</CardDescription>
         </CardHeader>
         <CardContent>
-          <DepartmentsDataTable data={departments} onDelete={handleDelete}/>
+          <DepartmentsDataTable data={departments}/>
         </CardContent>
       </Card>
     </div>);

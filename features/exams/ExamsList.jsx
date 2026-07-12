@@ -1,102 +1,24 @@
-/* eslint-disable react-hooks/incompatible-library, react-refresh/only-export-components */
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, ClipboardList, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
+import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-export const examCourses = [
-    'Introduction to Programming',
-    'Financial Accounting',
-    'Structural Analysis',
-    'Clinical Foundations',
-    'Curriculum Design',
-    'Quantum Mechanics',
-];
+import { getExamSchedules } from '@/services/exams.service';
 export const examStatuses = ['Scheduled', 'Ongoing', 'Completed', 'Cancelled'];
-export const defaultExams = [
-    {
-        id: 'EXM-001',
-        name: 'Programming Midterm',
-        course: 'Introduction to Programming',
-        date: '2026-07-12',
-        totalMarks: 100,
-        status: 'Scheduled',
-    },
-    {
-        id: 'EXM-002',
-        name: 'Accounting Quiz 2',
-        course: 'Financial Accounting',
-        date: '2026-06-28',
-        totalMarks: 50,
-        status: 'Completed',
-    },
-    {
-        id: 'EXM-003',
-        name: 'Structural Analysis Final',
-        course: 'Structural Analysis',
-        date: '2026-08-04',
-        totalMarks: 100,
-        status: 'Scheduled',
-    },
-    {
-        id: 'EXM-004',
-        name: 'Clinical Skills Assessment',
-        course: 'Clinical Foundations',
-        date: '2026-06-20',
-        totalMarks: 80,
-        status: 'Ongoing',
-    },
-    {
-        id: 'EXM-005',
-        name: 'Curriculum Design Portfolio',
-        course: 'Curriculum Design',
-        date: '2026-05-30',
-        totalMarks: 100,
-        status: 'Completed',
-    },
-    {
-        id: 'EXM-006',
-        name: 'Quantum Mechanics Retake',
-        course: 'Quantum Mechanics',
-        date: '2026-06-16',
-        totalMarks: 70,
-        status: 'Cancelled',
-    },
-];
-const storageKey = 'ocms-exams';
 const statusStyles = {
     Scheduled: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
     Ongoing: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     Completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     Cancelled: 'bg-destructive/10 text-destructive',
 };
-function readStoredExams() {
-    if (typeof window === 'undefined') {
-        return defaultExams;
-    }
-    try {
-        const storedExams = window.localStorage.getItem(storageKey);
-        return storedExams ? JSON.parse(storedExams) : defaultExams;
-    }
-    catch {
-        return defaultExams;
-    }
-}
-export function getExams() {
-    return readStoredExams();
-}
-export function saveExam(exam) {
-    const nextExams = [{ id: `EXM-${Date.now()}`, ...exam }, ...getExams()];
-    window.localStorage.setItem(storageKey, JSON.stringify(nextExams));
-    return nextExams;
-}
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
       {children}
@@ -104,13 +26,14 @@ function SortButton({ column, children }) {
     </Button>);
 }
 function exportExams(rows) {
+    if (!rows.length) return;
     const headers = ['Exam Name', 'Course', 'Date', 'Total Marks', 'Status'];
     const body = rows.map((row) => {
         const exam = row.original;
-        return [exam.name, exam.course, exam.date, exam.totalMarks, exam.status];
+        return [exam.name ?? exam.title, exam.course, exam.date ?? exam.exam_date, exam.totalMarks, exam.status];
     });
     const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -124,11 +47,12 @@ function ExamsDataTable({ data }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
+    const allCourses = useMemo(() => [...new Set(data.map((e) => e.course).filter(Boolean))], [data]);
     const columns = useMemo(() => [
         {
             accessorKey: 'name',
             header: ({ column }) => <SortButton column={column}>Exam Name</SortButton>,
-            cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+            cell: ({ row }) => <span className="font-medium">{row.original.name ?? row.original.title}</span>,
         },
         {
             accessorKey: 'course',
@@ -137,15 +61,17 @@ function ExamsDataTable({ data }) {
         {
             accessorKey: 'date',
             header: ({ column }) => <SortButton column={column}>Date</SortButton>,
+            cell: ({ row }) => row.original.date ?? row.original.exam_date ?? '-',
         },
         {
             accessorKey: 'totalMarks',
             header: ({ column }) => <SortButton column={column}>Total Marks</SortButton>,
+            cell: ({ row }) => row.original.totalMarks ?? '-',
         },
         {
             accessorKey: 'status',
             header: 'Status',
-            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status])}>{row.original.status}</Badge>),
+            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
             id: 'actions',
@@ -192,7 +118,7 @@ function ExamsDataTable({ data }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              {examCourses.map((course) => (<SelectItem key={course} value={course}>
+              {allCourses.map((course) => (<SelectItem key={course} value={course}>
                   {course}
                 </SelectItem>))}
             </SelectContent>
@@ -237,8 +163,8 @@ function ExamsDataTable({ data }) {
             {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No exams found.
+                <TableCell colSpan={columns.length} className="p-6">
+                  <EmptyState title="No exams found" description="Exam schedules will appear once they are created in the system." actionLabel="Add Exam" actionTo="/exams/add"/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
@@ -264,7 +190,17 @@ function ExamsDataTable({ data }) {
     </div>);
 }
 export function ExamsList() {
-    const [exams] = useState(() => getExams());
+    const [exams, setExams] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        getExamSchedules()
+            .then((response) => {
+            const data = Array.isArray(response) ? response : [];
+            setExams(data);
+        })
+            .catch(() => setExams([]))
+            .finally(() => setLoading(false));
+    }, []);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -282,7 +218,13 @@ export function ExamsList() {
           <CardDescription>Search, filter, export, and review course exams.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ExamsDataTable data={exams}/>
+          {loading ? (
+            <div className="flex items-center justify-center p-12">
+              <p className="text-muted-foreground">Loading exams...</p>
+            </div>
+          ) : (
+            <ExamsDataTable data={exams}/>
+          )}
         </CardContent>
       </Card>
     </div>);
