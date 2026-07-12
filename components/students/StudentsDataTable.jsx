@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/incompatible-library */
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { ArrowUpDown, Download, Eye, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowUpDown, Download, Eye, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-import { departments, getStudentFullName, studentStatuses } from '@/features/students/students-data';
 const statusStyles = {
     Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -25,22 +24,14 @@ function SortButton({ column, children }) {
     </Button>);
 }
 function exportStudents(rows) {
-    const headers = ['Student ID', 'Full Name', 'Email', 'Gender', 'Department', 'Program', 'Status', 'Enrollment Date'];
+    if (!rows.length) return;
+    const headers = ['ID', 'Full Name', 'Email', 'Phone', 'Gender', 'Department', 'Status'];
     const body = rows.map((row) => {
-        const student = row.original;
-        return [
-            student.id,
-            getStudentFullName(student),
-            student.email,
-            student.gender,
-            student.department,
-            student.program,
-            student.status,
-            student.enrollmentDate,
-        ];
+        const s = row.original;
+        return [s.id, s.name, s.email, s.phone, s.gender, s.department, s.status];
     });
     const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
+        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
         .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -57,17 +48,20 @@ export function StudentsDataTable({ data, onDelete }) {
     const columns = useMemo(() => [
         {
             accessorKey: 'id',
-            header: ({ column }) => <SortButton column={column}>Student ID</SortButton>,
+            header: ({ column }) => <SortButton column={column}>ID</SortButton>,
             cell: ({ row }) => <span className="font-medium">{row.original.id}</span>,
         },
         {
-            id: 'fullName',
-            accessorFn: (row) => getStudentFullName(row),
+            accessorKey: 'name',
             header: ({ column }) => <SortButton column={column}>Full Name</SortButton>,
         },
         {
             accessorKey: 'email',
             header: ({ column }) => <SortButton column={column}>Email</SortButton>,
+        },
+        {
+            accessorKey: 'phone',
+            header: 'Phone',
         },
         {
             accessorKey: 'gender',
@@ -78,17 +72,9 @@ export function StudentsDataTable({ data, onDelete }) {
             header: ({ column }) => <SortButton column={column}>Department</SortButton>,
         },
         {
-            accessorKey: 'program',
-            header: 'Program',
-        },
-        {
             accessorKey: 'status',
             header: 'Status',
-            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status])}>{row.original.status}</Badge>),
-        },
-        {
-            accessorKey: 'enrollmentDate',
-            header: ({ column }) => <SortButton column={column}>Enrollment Date</SortButton>,
+            cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
             id: 'actions',
@@ -143,47 +129,34 @@ export function StudentsDataTable({ data, onDelete }) {
         getPaginationRowModel: getPaginationRowModel(),
     });
     return (<div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,320px)_180px_160px]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
-            <Input className="pl-9" placeholder="Search students..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+          <Input className="pl-9" placeholder="Search students..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
+        </div>
+        <div className="flex gap-2">
           <Select value={table.getColumn('department')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('department')?.setFilterValue(value === 'all' ? undefined : value)}>
-            <SelectTrigger>
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Department"/>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Departments</SelectItem>
-              {departments.map((department) => (<SelectItem key={department} value={department}>
-                  {department}
+              {[...new Set(data.map((s) => typeof s.department === 'object' ? s.department?.name : s.department).filter(Boolean))].map((dept) => (<SelectItem key={dept} value={dept}>
+                  {dept}
                 </SelectItem>))}
             </SelectContent>
           </Select>
           <Select value={table.getColumn('status')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value)}>
-            <SelectTrigger>
+            <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Status"/>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {studentStatuses.map((status) => (<SelectItem key={status} value={status}>
+              {[...new Set(data.map((s) => s.status).filter(Boolean))].map((status) => (<SelectItem key={status} value={status}>
                   {status}
                 </SelectItem>))}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => exportStudents(table.getFilteredRowModel().rows)}>
-            <Download />
-            Export
-          </Button>
-          <Button asChild>
-            <Link to="/students/add">
-              <Plus />
-              Add Student
-            </Link>
-          </Button>
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from '@/lib/router';
 import { CalendarDays, CreditCard, GraduationCap, Mail, Pencil, Phone, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { getStudentById, getStudentFullName } from '@/features/students/students-data';
+import { getStudent } from '@/services/students.service';
 import { cn } from '@/lib/cn';
 const statusStyles = {
     Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
@@ -23,19 +24,43 @@ function InfoGrid({ items }) {
 }
 export function StudentProfile() {
     const { studentId } = useParams();
-    const student = getStudentById(studentId);
-    if (!student) {
+    const [student, setStudent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    useEffect(() => {
+        if (!studentId) return;
+        getStudent(studentId)
+            .then((response) => {
+            const raw = response?.data ?? response;
+            if (!raw) { setError('Student not found.'); return; }
+            const data = {
+                ...raw,
+                department: typeof raw.department === 'object' && raw.department !== null ? raw.department.name : raw.department || '',
+                firstName: raw.firstName ?? raw.user?.name?.split(' ')[0] ?? '',
+                lastName: raw.lastName ?? raw.user?.name?.split(' ').slice(1).join(' ') ?? '',
+                email: raw.email ?? raw.user?.email ?? '',
+                phone: raw.phone ?? raw.user?.phone ?? '',
+            };
+            setStudent(data);
+        })
+            .catch(() => setError('Failed to load student.'))
+            .finally(() => setLoading(false));
+    }, [studentId]);
+    if (loading) {
+        return <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading student...</p></div>;
+    }
+    if (error || !student) {
         return (<div className="space-y-4">
         <Alert variant="destructive">
           <AlertTitle>Student not found</AlertTitle>
-          <AlertDescription>The requested mock student profile does not exist.</AlertDescription>
+          <AlertDescription>{error || 'The requested student profile does not exist.'}</AlertDescription>
         </Alert>
         <Button asChild variant="outline">
           <Link to="/students">Back to students</Link>
         </Button>
       </div>);
     }
-    const fullName = getStudentFullName(student);
+    const fullName = `${student.firstName ?? student.name ?? ''} ${student.lastName ?? ''}`.trim() || student.name || studentId;
     return (<div className="space-y-6">
       <Card>
         <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between">
@@ -46,23 +71,23 @@ export function StudentProfile() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-semibold tracking-normal">{fullName}</h1>
-                <Badge className={cn(statusStyles[student.status])}>{student.status}</Badge>
+                <Badge className={cn(statusStyles[student.status] || '')}>{student.status}</Badge>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">{student.id}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{student.id || studentId}</p>
               <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
+                {student.email && <span className="inline-flex items-center gap-1.5">
                   <Mail className="size-4"/>
                   {student.email}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
+                </span>}
+                {student.phone && <span className="inline-flex items-center gap-1.5">
                   <Phone className="size-4"/>
                   {student.phone}
-                </span>
+                </span>}
               </div>
             </div>
           </div>
           <Button asChild>
-            <Link to={`/students/${student.id}/edit`}>
+            <Link to={`/students/${student.id || studentId}/edit`}>
               <Pencil />
               Edit Profile
             </Link>
@@ -87,13 +112,13 @@ export function StudentProfile() {
             </CardHeader>
             <CardContent>
               <InfoGrid items={[
-            { label: 'Full Name', value: fullName },
-            { label: 'Gender', value: student.gender },
-            { label: 'Date of Birth', value: student.dateOfBirth },
-            { label: 'Email', value: student.email },
-            { label: 'Phone', value: student.phone },
-            { label: 'Address', value: student.address },
-        ]}/>
+                { label: 'Full Name', value: fullName },
+                { label: 'Gender', value: student.gender || '-' },
+                { label: 'Date of Birth', value: student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '-' },
+                { label: 'Email', value: student.email || '-' },
+                { label: 'Phone', value: student.phone || '-' },
+                { label: 'Address', value: student.address || '-' },
+              ]}/>
             </CardContent>
           </Card>
         </TabsContent>
@@ -106,12 +131,12 @@ export function StudentProfile() {
             </CardHeader>
             <CardContent>
               <InfoGrid items={[
-            { label: 'Student ID', value: student.id },
-            { label: 'Department', value: student.department },
-            { label: 'Program', value: student.program },
-            { label: 'Enrollment Date', value: student.enrollmentDate },
-            { label: 'Status', value: student.status },
-        ]}/>
+                { label: 'Student ID', value: student.id || studentId },
+                { label: 'Department', value: student.department || student.department_id?.toString() || '-' },
+                { label: 'Program', value: student.program || '-' },
+                { label: 'Enrollment Date', value: student.enrollmentDate || student.enrollment_date || '-' },
+                { label: 'Status', value: student.status || '-' },
+              ]}/>
             </CardContent>
           </Card>
         </TabsContent>
@@ -120,18 +145,10 @@ export function StudentProfile() {
           <Card>
             <CardHeader>
               <CardTitle>Attendance</CardTitle>
-              <CardDescription>Mock attendance summary for the current term.</CardDescription>
+              <CardDescription>Attendance summary for the current term.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              {[
-            ['Present', '92%'],
-            ['Absent', '5%'],
-            ['Excused', '3%'],
-        ].map(([label, value]) => (<div key={label} className="rounded-lg border bg-secondary/30 p-4">
-                  <CalendarDays className="mb-3 size-5 text-muted-foreground"/>
-                  <p className="text-sm text-muted-foreground">{label}</p>
-                  <p className="mt-1 text-2xl font-semibold">{value}</p>
-                </div>))}
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Attendance data will be available once the backend attendance endpoints are connected.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -140,18 +157,10 @@ export function StudentProfile() {
           <Card>
             <CardHeader>
               <CardTitle>Results</CardTitle>
-              <CardDescription>Mock academic performance summary.</CardDescription>
+              <CardDescription>Academic performance summary.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              {[
-            ['Current GPA', '3.72'],
-            ['Credits Earned', '84'],
-            ['Standing', 'Good'],
-        ].map(([label, value]) => (<div key={label} className="rounded-lg border bg-secondary/30 p-4">
-                  <GraduationCap className="mb-3 size-5 text-muted-foreground"/>
-                  <p className="text-sm text-muted-foreground">{label}</p>
-                  <p className="mt-1 text-2xl font-semibold">{value}</p>
-                </div>))}
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Result data will be available once the backend results endpoints are connected.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -160,18 +169,10 @@ export function StudentProfile() {
           <Card>
             <CardHeader>
               <CardTitle>Payments</CardTitle>
-              <CardDescription>Mock financial account summary.</CardDescription>
+              <CardDescription>Financial account summary.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
-              {[
-            ['Paid', '$4,800'],
-            ['Balance', '$950'],
-            ['Last Invoice', 'INV-2026-084'],
-        ].map(([label, value]) => (<div key={label} className="rounded-lg border bg-secondary/30 p-4">
-                  <CreditCard className="mb-3 size-5 text-muted-foreground"/>
-                  <p className="text-sm text-muted-foreground">{label}</p>
-                  <p className="mt-1 text-2xl font-semibold">{value}</p>
-                </div>))}
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Payment data will be available once the backend payments endpoints are connected.</p>
             </CardContent>
           </Card>
         </TabsContent>

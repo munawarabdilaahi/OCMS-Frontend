@@ -3,6 +3,10 @@ export async function getStudents(params) {
     const response = await api.get('/students', { params });
     return response.data;
 }
+export async function getStudentStats() {
+    const response = await api.get('/students/stats');
+    return response.data?.data;
+}
 export async function getStudent(id) {
     const response = await api.get(`/students/${id}`);
     return response.data?.data;

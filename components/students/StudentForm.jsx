@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate } from '@/lib/router';
+import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +10,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { departments, genders, programs, studentStatuses } from '@/features/students/students-data';
-import { emptyStudentValues, studentSchema } from '@/features/students/student-schema';
+import { departments, genders, studentStatuses } from '@/features/students/students-data';
+import { addStudentSchema, editStudentSchema, emptyStudentValues } from '@/features/students/student-schema';
+import { createStudent, updateStudent } from '@/services/students.service';
+
+const departmentNameToId = {
+    'Computer Science': 1,
+    'Business': 2,
+    'Engineering': 3,
+    'Health Sciences': 4,
+    'Education': 5,
+};
 function FieldError({ message }) {
     if (!message) {
         return null;
@@ -35,15 +45,39 @@ function SelectField({ control, name, label, options, disabled, error }) {
 }
 export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }) {
     const navigate = useNavigate();
+    const isEdit = mode === 'edit';
     const { control, register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful }, } = useForm({
-        resolver: zodResolver(studentSchema),
+        resolver: zodResolver(isEdit ? editStudentSchema : addStudentSchema),
         defaultValues,
     });
     async function onSubmit(values) {
-        await new Promise((resolve) => window.setTimeout(resolve, 700));
-        navigate(`/students/${values.id}`);
+        try {
+            const payload = {
+                name: `${values.firstName} ${values.lastName}`.trim(),
+                email: values.email,
+                password: 'campus123',
+                phone: values.phone,
+                department_id: departmentNameToId[values.department] || 1,
+                date_of_birth: values.dateOfBirth || undefined,
+                gender: values.gender,
+                address: values.address,
+                status: values.status.toUpperCase(),
+            };
+            if (mode === 'edit') {
+                await updateStudent(Number(values.id), payload);
+                toast.success('Student record updated.');
+                navigate(`/students/${values.id}`);
+            }
+            else {
+                const created = await createStudent(payload);
+                toast.success('Student record created.');
+                navigate(`/students/${created?.id}`);
+            }
+        }
+        catch (error) {
+            toast.error(error.message || 'Failed to save student record.');
+        }
     }
-    const isEdit = mode === 'edit';
     return (<Card>
       <CardHeader>
         <CardTitle>{isEdit ? 'Edit Student' : 'Add Student'}</CardTitle>
@@ -55,15 +89,17 @@ export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }
         <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
           {isSubmitSuccessful && (<Alert variant="success">
               <AlertTitle>Student record saved</AlertTitle>
-              <AlertDescription>This mock form is ready for backend integration.</AlertDescription>
+              <AlertDescription>The student record has been saved to the database.</AlertDescription>
             </Alert>)}
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {isEdit && (
             <div className="space-y-2">
               <Label htmlFor="id">Student ID</Label>
-              <Input id="id" disabled={isSubmitting || isEdit} aria-invalid={Boolean(errors.id)} {...register('id')}/>
+              <Input id="id" disabled aria-invalid={Boolean(errors.id)} {...register('id')}/>
               <FieldError message={errors.id?.message}/>
             </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
               <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} {...register('firstName')}/>
@@ -91,12 +127,6 @@ export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }
               <FieldError message={errors.phone?.message}/>
             </div>
             <SelectField control={control} name="department" label="Department" options={departments} disabled={isSubmitting} error={errors.department}/>
-            <SelectField control={control} name="program" label="Program" options={programs} disabled={isSubmitting} error={errors.program}/>
-            <div className="space-y-2">
-              <Label htmlFor="enrollmentDate">Enrollment Date</Label>
-              <Input id="enrollmentDate" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.enrollmentDate)} {...register('enrollmentDate')}/>
-              <FieldError message={errors.enrollmentDate?.message}/>
-            </div>
             <SelectField control={control} name="status" label="Status" options={studentStatuses} disabled={isSubmitting} error={errors.status}/>
           </div>
 
