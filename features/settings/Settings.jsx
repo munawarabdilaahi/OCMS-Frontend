@@ -95,6 +95,9 @@ function SettingsCard({ icon: Icon, title, description, children }) {
     </Card>);
 }
 export function Settings() {
+    // TODO: Connect to backend settings API when available (GET /api/settings, PUT /api/settings)
+    // TODO: Connect account updates to PUT /api/auth/profile
+    // TODO: Connect security password change to PUT /api/auth/change-password
     const { user, updateUser } = useAuth();
     const { theme, setTheme } = useTheme();
     const generalForm = useForm({

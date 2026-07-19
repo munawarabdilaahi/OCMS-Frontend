@@ -2,6 +2,7 @@ import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel
 import { ArrowUpDown, ClipboardList, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -192,13 +193,19 @@ function ExamsDataTable({ data }) {
 export function ExamsList() {
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     useEffect(() => {
         getExamSchedules()
             .then((response) => {
             const data = Array.isArray(response) ? response : [];
-            setExams(data);
+            setExams(data.map((e) => ({
+                ...e,
+                name: e.name || e.title || '',
+                course: typeof e.course === 'object' && e.course !== null ? (e.course.title || e.course.code || '') : (e.course || ''),
+                date: e.date || e.exam_date || '',
+            })));
         })
-            .catch(() => setExams([]))
+            .catch(() => setError('Failed to load exam schedules.'))
             .finally(() => setLoading(false));
     }, []);
     return (<div className="space-y-6">
@@ -211,6 +218,11 @@ export function ExamsList() {
           <ClipboardList className="size-5"/>
         </span>
       </div>
+
+      {error && (<Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>)}
 
       <Card>
         <CardHeader>

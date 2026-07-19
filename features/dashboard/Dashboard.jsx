@@ -3,6 +3,7 @@ import { BookOpen, GraduationCap, Users, Building2, CalendarClock, FileCheck2, U
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { getStudentStats } from '@/services/students.service';
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
@@ -45,10 +46,11 @@ export function Dashboard() {
     const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     useEffect(() => {
         getStudentStats()
             .then((data) => setStats(data))
-            .catch(() => {})
+            .catch(() => setError('Failed to load dashboard data.'))
             .finally(() => setLoading(false));
     }, []);
     const firstName = user?.name?.split(' ')[0] || 'User';
@@ -60,6 +62,11 @@ export function Dashboard() {
         <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Welcome back, {firstName}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Here is what is happening across campus today.</p>
       </div>
+
+      {error && (<Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>)}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Students" value={stats?.totalStudents} icon={GraduationCap} color="text-emerald-600 dark:text-emerald-400" loading={loading}/>

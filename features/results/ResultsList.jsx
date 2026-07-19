@@ -2,6 +2,7 @@ import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel
 import { ArrowUpDown, Download, Eye, GraduationCap, MoreHorizontal, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from '@/lib/router';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -187,15 +188,35 @@ export function ResultsList() {
     const course = searchParams.get('course');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     useEffect(() => {
         const params = {};
         if (course) params.course_id = course;
         getExamResults(params)
             .then((response) => {
             const data = Array.isArray(response) ? response : [];
-            setResults(data);
+            setResults(data.map((r) => {
+                const totalScore = Number(r.total_score) || 0;
+                let grade = '-';
+                let gpa = null;
+                if (totalScore >= 90) { grade = 'A'; gpa = 4.0; }
+                else if (totalScore >= 80) { grade = 'B+'; gpa = 3.5; }
+                else if (totalScore >= 70) { grade = 'B'; gpa = 3.0; }
+                else if (totalScore >= 60) { grade = 'C+'; gpa = 2.5; }
+                else if (totalScore >= 50) { grade = 'C'; gpa = 2.0; }
+                else if (totalScore > 0) { grade = 'F'; gpa = 0.0; }
+                return {
+                    ...r,
+                    studentId: r.student_id || r.student?.id || '',
+                    studentName: r.student?.user?.name || '',
+                    course: typeof r.course === 'object' && r.course !== null ? (r.course.title || r.course.code || '') : (r.course || ''),
+                    marks: totalScore,
+                    grade,
+                    gpa,
+                };
+            }));
         })
-            .catch(() => setResults([]))
+            .catch(() => setError('Failed to load results.'))
             .finally(() => setLoading(false));
     }, [course]);
     return (<div className="space-y-6">
@@ -214,6 +235,11 @@ export function ResultsList() {
           <GraduationCap className="size-5"/>
         </span>
       </div>
+
+      {error && (<Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>)}
 
       <Card>
         <CardHeader>

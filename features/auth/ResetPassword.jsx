@@ -8,10 +8,12 @@ import { PasswordField } from '@/components/auth/PasswordField';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { resetPasswordRequest } from '@/services/auth.service';
 const schema = z
     .object({
+    token: z.string().min(1, 'Reset token is required.'),
     password: z.string().min(8, 'Password must be at least 8 characters.'),
     confirmPassword: z.string().min(8, 'Confirm your new password.'),
 })
@@ -22,15 +24,16 @@ const schema = z
 export function ResetPassword() {
     const [submitError, setSubmitError] = useState('');
     const [isReset, setIsReset] = useState(false);
+    const tokenFromUrl = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') || '' : '';
     const { register, handleSubmit, formState: { errors, isSubmitting }, } = useForm({
         resolver: zodResolver(schema),
-        defaultValues: { password: '', confirmPassword: '' },
+        defaultValues: { token: tokenFromUrl, password: '', confirmPassword: '' },
     });
     async function onSubmit(values) {
         setSubmitError('');
         setIsReset(false);
         try {
-            await resetPasswordRequest(values);
+            await resetPasswordRequest({ token: values.token, password: values.password, confirmPassword: values.confirmPassword });
             setIsReset(true);
         }
         catch (error) {
@@ -53,8 +56,13 @@ export function ResetPassword() {
             </Alert>)}
           {isReset && (<Alert variant="success">
               <AlertTitle>Password ready</AlertTitle>
-              <AlertDescription>Your password reset request was processed.</AlertDescription>
+              <AlertDescription>Your password has been reset successfully. You can now sign in.</AlertDescription>
             </Alert>)}
+          <div className="space-y-2">
+            <Label htmlFor="token">Reset Token</Label>
+            <Input id="token" type="text" placeholder="Enter your reset token" disabled={isSubmitting} aria-invalid={Boolean(errors.token)} {...register('token')}/>
+            {errors.token && <p className="text-sm text-destructive">{errors.token.message}</p>}
+          </div>
           <div className="space-y-2">
             <Label htmlFor="password">New password</Label>
             <PasswordField id="password" autoComplete="new-password" placeholder="Create a new password" disabled={isSubmitting} invalid={Boolean(errors.password)} registration={register('password')}/>

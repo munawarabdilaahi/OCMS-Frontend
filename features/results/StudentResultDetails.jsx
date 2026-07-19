@@ -20,7 +20,11 @@ export function StudentResultDetails() {
         getExamResults({ student_id: visibleStudentId })
             .then((response) => {
             const data = Array.isArray(response) ? response : [];
-            setResults(data);
+            setResults(data.map((r) => ({
+                ...r,
+                course: typeof r.course === 'object' && r.course !== null ? (r.course.title || r.course.code || '') : (r.course || ''),
+                marks: Number(r.total_score) || 0,
+            })));
         })
             .catch(() => setResults([]))
             .finally(() => setLoading(false));

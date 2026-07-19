@@ -1,7 +1,9 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { ArrowUpDown, BookOpen, Download, Eye, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowUpDown, BookOpen, Download, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
+import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,26 +15,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
+import { getCourses, deleteCourse } from '@/services/courses.service';
+
 export const courseSemesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Summer'];
-export const courseStatuses = ['Active', 'Draft', 'Completed', 'Archived'];
+export const courseStatuses = ['ACTIVE', 'DRAFT', 'COMPLETED', 'ARCHIVED'];
 const statusStyles = {
-    Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Draft: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Completed: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    Archived: 'bg-muted text-muted-foreground',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    DRAFT: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    COMPLETED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    ARCHIVED: 'bg-muted text-muted-foreground',
 };
+
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
       {children}
       <ArrowUpDown className="ml-1 size-3.5"/>
     </Button>);
 }
+
 function exportCourses(rows) {
     if (!rows.length) return;
     const headers = ['Course Code', 'Course Name', 'Credit Hours', 'Department', 'Teacher', 'Semester', 'Status'];
     const body = rows.map((row) => {
-        const course = row.original;
-        return [course.code, course.name, course.creditHours, course.department, course.teacher, course.semester, course.status];
+        const c = row.original;
+        return [c.code, c.title, c.credit_hours, c.department, c.teacher, c.semester, c.status];
     });
     const csv = [headers, ...body]
         .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
@@ -45,23 +51,24 @@ function exportCourses(rows) {
     anchor.click();
     URL.revokeObjectURL(url);
 }
-function CoursesDataTable({ data, isStudent = false }) {
+
+function CoursesDataTable({ data, isStudent = false, onDelete }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
-    const [columnFilters, setColumnFilters] = useState([]);
     const columns = useMemo(() => [
         {
             accessorKey: 'code',
             header: ({ column }) => <SortButton column={column}>Course Code</SortButton>,
-            cell: ({ row }) => <span className="font-medium">{row.original.code}</span>,
+            cell: ({ row }) => <span className="font-medium">{row.original.code || '-'}</span>,
         },
         {
-            accessorKey: 'name',
+            accessorKey: 'title',
             header: ({ column }) => <SortButton column={column}>Course Name</SortButton>,
         },
         {
-            accessorKey: 'creditHours',
+            accessorKey: 'credit_hours',
             header: ({ column }) => <SortButton column={column}>Credit Hours</SortButton>,
+            cell: ({ row }) => row.original.credit_hours ?? '-',
         },
         {
             accessorKey: 'department',
@@ -70,6 +77,7 @@ function CoursesDataTable({ data, isStudent = false }) {
         {
             accessorKey: 'teacher',
             header: ({ column }) => <SortButton column={column}>Teacher</SortButton>,
+            cell: ({ row }) => row.original.teacher || '-',
         },
         {
             accessorKey: 'semester',
@@ -93,19 +101,18 @@ function CoursesDataTable({ data, isStudent = false }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to={`/courses/${row.original.code}`}>
-                  <Eye />
+                <Link to={`/courses/${row.original.id}`}>
                   View Details
                 </Link>
               </DropdownMenuItem>
               {!isStudent && (<>
                   <DropdownMenuItem asChild>
-                    <Link to={`/courses/${row.original.code}/edit`}>
+                    <Link to={`/courses/${row.original.id}/edit`}>
                       <Pencil />
                       Edit
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.id, row.original.title)}>
                     <Trash2 />
                     Delete
                   </DropdownMenuItem>
@@ -113,70 +120,27 @@ function CoursesDataTable({ data, isStudent = false }) {
             </DropdownMenuContent>
           </DropdownMenu>),
         },
-    ], [isStudent]);
+    ], [isStudent, onDelete]);
+
     const table = useReactTable({
         data,
         columns,
-        state: {
-            sorting,
-            globalFilter,
-            columnFilters,
-        },
-        initialState: {
-            pagination: {
-                pageSize: 5,
-            },
-        },
+        state: { sorting, globalFilter },
+        initialState: { pagination: { pageSize: 10 } },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
-        onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
+
     return (<div className="space-y-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,320px)_180px_160px_160px]">
-          <div className="relative sm:col-span-2 lg:col-span-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
-            <Input className="pl-9" placeholder="Search courses..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
-          </div>
-          <Select value={table.getColumn('department')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('department')?.setFilterValue(value === 'all' ? undefined : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Department"/>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {[...new Set(data.map((c) => c.department).filter(Boolean))].map((department) => (<SelectItem key={department} value={department}>
-                  {department}
-                </SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Select value={table.getColumn('semester')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('semester')?.setFilterValue(value === 'all' ? undefined : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Semester"/>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Semesters</SelectItem>
-              {courseSemesters.map((semester) => (<SelectItem key={semester} value={semester}>
-                  {semester}
-                </SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Select value={table.getColumn('status')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Status"/>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {courseStatuses.map((status) => (<SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>))}
-            </SelectContent>
-          </Select>
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+          <Input className="pl-9" placeholder="Search courses..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
         </div>
-
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => exportCourses(table.getFilteredRowModel().rows)}>
             <Download />
@@ -205,7 +169,7 @@ function CoursesDataTable({ data, isStudent = false }) {
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No courses found" description="Courses will be available once the backend is connected."/>
+                  <EmptyState title="No courses found" description="Create a course to get started." actionLabel="Add Course" actionTo="/courses/add"/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
@@ -230,10 +194,32 @@ function CoursesDataTable({ data, isStudent = false }) {
       </div>
     </div>);
 }
+
 export function CoursesList() {
     const { user } = useAuth();
     const isStudent = user?.role === ROLES.STUDENT;
-    const [courses] = useState([]);
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    useEffect(() => {
+        getCourses()
+            .then((response) => {
+                const data = response?.data ?? response ?? [];
+                setCourses(Array.isArray(data) ? data : []);
+            })
+            .catch(() => setError('Failed to load courses.'))
+            .finally(() => setLoading(false));
+    }, []);
+    const handleDelete = useCallback(async (id, title) => {
+        if (!window.confirm(`Delete course "${title}"? This action cannot be undone.`)) return;
+        try {
+            await deleteCourse(id);
+            toast.success('Course deleted successfully.');
+            setCourses((prev) => prev.filter((c) => c.id !== id));
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete course.');
+        }
+    }, []);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -241,9 +227,7 @@ export function CoursesList() {
             {isStudent ? 'My Courses' : 'Courses'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isStudent
-            ? 'View the courses attached to your student record.'
-            : 'Manage course catalog records, academic assignments, semesters, and enrollment-facing status.'}
+            {loading ? 'Loading...' : `${courses.length} course${courses.length !== 1 ? 's' : ''} registered`}
           </p>
         </div>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -251,17 +235,24 @@ export function CoursesList() {
         </span>
       </div>
 
+      {error && (<Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>)}
+
       <Card>
         <CardHeader>
           <CardTitle>{isStudent ? 'My Course Directory' : 'Course Directory'}</CardTitle>
-          <CardDescription>
-            {isStudent
-            ? 'Search, filter, and review your enrolled courses.'
-            : 'Search, filter, paginate, export, and manage course records.'}
-          </CardDescription>
+          <CardDescription>Search, filter, paginate, export, and manage course records.</CardDescription>
         </CardHeader>
         <CardContent>
-          <CoursesDataTable data={courses} isStudent={isStudent}/>
+          {loading ? (
+            <div className="flex items-center justify-center p-12">
+              <p className="text-muted-foreground">Loading courses...</p>
+            </div>
+          ) : (
+            <CoursesDataTable data={courses} isStudent={isStudent} onDelete={handleDelete}/>
+          )}
         </CardContent>
       </Card>
     </div>);

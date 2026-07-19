@@ -1,6 +1,6 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, CalendarCheck, Clock3, Download, FileBarChart, MoreHorizontal, Plus, Search, UserCheck, UserMinus, UserRoundCheck, } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,31 +10,33 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
-export const attendanceStatuses = ['Present', 'Absent', 'Late'];
+import { getAttendance, getAttendanceStats } from '@/services/attendance.service';
+
 const statusStyles = {
-    Present: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Absent: 'bg-destructive/10 text-destructive',
-    Late: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    PRESENT: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    ABSENT: 'bg-destructive/10 text-destructive',
+    LATE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
 };
+
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
       {children}
       <ArrowUpDown className="ml-1 size-3.5"/>
     </Button>);
 }
+
 function exportAttendance(rows) {
     if (!rows.length) return;
     const headers = ['Student ID', 'Student Name', 'Course', 'Date', 'Status'];
     const body = rows.map((row) => {
-        const record = row.original;
-        return [record.studentId, record.studentName, record.course, record.date, record.status];
+        const r = row.original;
+        return [r.student_id, r.studentName, r.course, r.date?.split('T')[0], r.status];
     });
-    const csv = [headers, ...body]
-        .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
-        .join('\n');
+    const csv = [headers, ...body].map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -43,45 +45,68 @@ function exportAttendance(rows) {
     anchor.click();
     URL.revokeObjectURL(url);
 }
-function AttendanceSummaryCard({ title, value, description, icon: Icon, tone }) {
-    const toneClasses = {
-        teal: 'bg-teal-500/10 text-teal-700 dark:text-teal-300',
-        emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-        rose: 'bg-destructive/10 text-destructive',
-        amber: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    };
-    return (<Card>
-      <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
-        <div>
-          <CardDescription>{title}</CardDescription>
-          <CardTitle className="mt-2 text-2xl">{value}</CardTitle>
-        </div>
-        <span className={cn('flex size-10 items-center justify-center rounded-md', toneClasses[tone])}>
-          <Icon className="size-5"/>
-        </span>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>);
-}
-export function AttendanceDashboardCards({ stats }) {
+
+function AttendanceDashboardCards({ stats }) {
     return (<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <AttendanceSummaryCard title="Attendance Rate" value={`${stats.rate}%`} description={`${stats.total} attendance records tracked`} icon={CalendarCheck} tone="teal"/>
-      <AttendanceSummaryCard title="Present Students" value={stats.present} description="Marked present for selected records" icon={UserCheck} tone="emerald"/>
-      <AttendanceSummaryCard title="Absent Students" value={stats.absent} description="Marked absent for selected records" icon={UserMinus} tone="rose"/>
-      <AttendanceSummaryCard title="Late Students" value={stats.late} description="Arrived after scheduled start" icon={Clock3} tone="amber"/>
+      <Card>
+        <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+          <div>
+            <CardDescription>Attendance Rate</CardDescription>
+            <CardTitle className="mt-2 text-2xl">{stats?.rate ?? 0}%</CardTitle>
+          </div>
+          <span className="flex size-10 items-center justify-center rounded-md bg-teal-500/10 text-teal-700 dark:text-teal-300">
+            <CalendarCheck className="size-5"/>
+          </span>
+        </CardHeader>
+        <CardContent><p className="text-sm text-muted-foreground">{stats?.total ?? 0} records tracked</p></CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+          <div>
+            <CardDescription>Present</CardDescription>
+            <CardTitle className="mt-2 text-2xl">{stats?.present ?? 0}</CardTitle>
+          </div>
+          <span className="flex size-10 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+            <UserCheck className="size-5"/>
+          </span>
+        </CardHeader>
+        <CardContent><p className="text-sm text-muted-foreground">Marked present</p></CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+          <div>
+            <CardDescription>Absent</CardDescription>
+            <CardTitle className="mt-2 text-2xl">{stats?.absent ?? 0}</CardTitle>
+          </div>
+          <span className="flex size-10 items-center justify-center rounded-md bg-destructive/10 text-destructive">
+            <UserMinus className="size-5"/>
+          </span>
+        </CardHeader>
+        <CardContent><p className="text-sm text-muted-foreground">Marked absent</p></CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+          <div>
+            <CardDescription>Late</CardDescription>
+            <CardTitle className="mt-2 text-2xl">{stats?.late ?? 0}</CardTitle>
+          </div>
+          <span className="flex size-10 items-center justify-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
+            <Clock3 className="size-5"/>
+          </span>
+        </CardHeader>
+        <CardContent><p className="text-sm text-muted-foreground">Arrived late</p></CardContent>
+      </Card>
     </div>);
 }
+
 function AttendanceDataTable({ data, isStudent = false }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
-    const [columnFilters, setColumnFilters] = useState([]);
     const columns = useMemo(() => [
         {
-            accessorKey: 'studentId',
+            accessorKey: 'student_id',
             header: ({ column }) => <SortButton column={column}>Student ID</SortButton>,
-            cell: ({ row }) => <span className="font-medium">{row.original.studentId}</span>,
+            cell: ({ row }) => <span className="font-medium">{row.original.student_id}</span>,
         },
         {
             accessorKey: 'studentName',
@@ -94,6 +119,7 @@ function AttendanceDataTable({ data, isStudent = false }) {
         {
             accessorKey: 'date',
             header: ({ column }) => <SortButton column={column}>Date</SortButton>,
+            cell: ({ row }) => row.original.date ? new Date(row.original.date).toLocaleDateString() : '-',
         },
         {
             accessorKey: 'status',
@@ -101,79 +127,34 @@ function AttendanceDataTable({ data, isStudent = false }) {
             cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
-            id: 'actions',
-            header: 'Actions',
-            enableHiding: false,
-            cell: ({ row }) => (<DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="ghost" size="icon">
-                <MoreHorizontal />
-                <span className="sr-only">Open row actions</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link to={`/attendance/report?course=${encodeURIComponent(row.original.course)}&date=${row.original.date}`}>
-                  <FileBarChart />
-                  View Report
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>),
+            accessorKey: 'remarks',
+            header: 'Remarks',
+            cell: ({ row }) => row.original.remarks || '-',
         },
     ], []);
+
     const table = useReactTable({
-        data,
-        columns,
-        state: {
-            sorting,
-            globalFilter,
-            columnFilters,
-        },
-        initialState: {
-            pagination: {
-                pageSize: 5,
-            },
-        },
+        data, columns,
+        state: { sorting, globalFilter },
+        initialState: { pagination: { pageSize: 10 } },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
-        onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
+
     return (<div className="space-y-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,320px)_220px_170px]">
-          <div className="relative sm:col-span-2 lg:col-span-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
-            <Input className="pl-9" placeholder="Search attendance..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
-          </div>
-          <Select value={table.getColumn('course')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('course')?.setFilterValue(value === 'all' ? undefined : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Course"/>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Courses</SelectItem>
-              {[...new Set(data.map((r) => r.course).filter(Boolean))].map((course) => (<SelectItem key={course} value={course}>
-                  {course}
-                </SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Input type="date" value={table.getColumn('date')?.getFilterValue() ?? ''} onChange={(event) => table.getColumn('date')?.setFilterValue(event.target.value || undefined)}/>
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+          <Input className="pl-9" placeholder="Search attendance..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
         </div>
-
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => exportAttendance(table.getFilteredRowModel().rows)}>
             <Download />
-            Export Attendance
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/attendance/report">
-              <FileBarChart />
-              Report
-            </Link>
+            Export
           </Button>
           {!isStudent && (<Button asChild>
               <Link to="/attendance/take">
@@ -198,7 +179,7 @@ function AttendanceDataTable({ data, isStudent = false }) {
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No attendance records found" description="Attendance records will appear once the backend is connected." actionLabel={isStudent ? undefined : 'Take Attendance'} actionTo={isStudent ? undefined : '/attendance/take'}/>
+                  <EmptyState title="No attendance records found" description="Take attendance to get started." actionLabel={isStudent ? undefined : 'Take Attendance'} actionTo={isStudent ? undefined : '/attendance/take'}/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
@@ -210,24 +191,32 @@ function AttendanceDataTable({ data, isStudent = false }) {
           Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} records
         </p>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-          </span>
-          <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            Next
-          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+          <span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
         </div>
       </div>
     </div>);
 }
+
 export function AttendanceList() {
     const { user } = useAuth();
     const isStudent = user?.role === ROLES.STUDENT;
-    const [records] = useState([]);
-    const stats = { rate: 0, present: 0, absent: 0, late: 0, total: 0 };
+    const [records, setRecords] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    useEffect(() => {
+        const params = isStudent && user?.studentId ? { student_id: user.studentId } : {};
+        Promise.all([getAttendance(params), getAttendanceStats(params)])
+            .then(([attendanceRes, statsData]) => {
+                const data = attendanceRes?.data ?? [];
+                setRecords(Array.isArray(data) ? data : []);
+                setStats(statsData);
+            })
+            .catch(() => setError('Failed to load attendance data.'))
+            .finally(() => setLoading(false));
+    }, [isStudent, user?.studentId]);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -235,9 +224,7 @@ export function AttendanceList() {
             {isStudent ? 'My Attendance' : 'Attendance'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isStudent
-            ? 'Review your own attendance records by course, class date, and status.'
-            : 'Track student attendance by course, class date, and attendance status.'}
+            {isStudent ? 'Review your own attendance records.' : 'Track student attendance by course, class date, and status.'}
           </p>
         </div>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -245,19 +232,21 @@ export function AttendanceList() {
         </span>
       </div>
 
+      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+
       <AttendanceDashboardCards stats={stats}/>
 
       <Card>
         <CardHeader>
           <CardTitle>{isStudent ? 'My Attendance Records' : 'Attendance Records'}</CardTitle>
-          <CardDescription>
-            {isStudent
-            ? 'Search, filter by course or date, and review your attendance entries.'
-            : 'Search, filter by course or date, export, and review attendance entries.'}
-          </CardDescription>
+          <CardDescription>Search, filter, and review attendance entries.</CardDescription>
         </CardHeader>
         <CardContent>
-          <AttendanceDataTable data={records} isStudent={isStudent}/>
+          {loading ? (
+            <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading attendance...</p></div>
+          ) : (
+            <AttendanceDataTable data={records} isStudent={isStudent}/>
+          )}
         </CardContent>
       </Card>
     </div>);

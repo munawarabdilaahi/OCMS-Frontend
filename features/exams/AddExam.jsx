@@ -52,7 +52,12 @@ export function AddExam() {
         }
         setIsSubmitting(true);
         try {
-            await createExamSchedule(normalizedValues);
+            await createExamSchedule({
+                title: normalizedValues.name,
+                course_id: Number(normalizedValues.course),
+                exam_date: normalizedValues.date,
+                status: normalizedValues.status?.toUpperCase() || 'SCHEDULED',
+            });
             toast.success('Exam schedule created.');
             navigate('/exams');
         }

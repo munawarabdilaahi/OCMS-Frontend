@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
+export const DialogClose = DialogPrimitive.Close;
 export function DialogContent({ className, children, ...props }) {
     return (<DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50"/>
@@ -15,4 +16,16 @@ export function DialogContent({ className, children, ...props }) {
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>);
+}
+export function DialogHeader({ className, ...props }) {
+    return <div className={cn('flex flex-col space-y-1.5 text-center sm:text-left', className)} {...props}/>;
+}
+export function DialogTitle({ className, ...props }) {
+    return <h3 className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props}/>;
+}
+export function DialogDescription({ className, ...props }) {
+    return <p className={cn('text-sm text-muted-foreground', className)} {...props}/>;
+}
+export function DialogFooter({ className, ...props }) {
+    return <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)} {...props}/>;
 }

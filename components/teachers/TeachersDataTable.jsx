@@ -1,77 +1,73 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Link } from '@/lib/router';
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from "@tanstack/react-table";
-import { MoreHorizontal, Search, FileDown, Filter, ArrowUpDown, Pencil, Trash2, Eye, } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Search, Download, Pencil, Trash2, Eye, } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/cn';
+
 const statusStyles = {
-    Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    'On Leave': 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Contract: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    Inactive: 'bg-destructive/10 text-destructive',
-    Retired: 'bg-gray-500/10 text-gray-700 dark:text-gray-300',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    DELETED: 'bg-destructive/10 text-destructive',
 };
+
+function SortButton({ column, children }) {
+    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+      {children}
+      <ArrowUpDown className="ml-1 size-3.5"/>
+    </Button>);
+}
+
 export function TeachersDataTable({ data, onDelete }) {
     const [sorting, setSorting] = useState([]);
-    const [columnFilters, setColumnFilters] = useState([]);
     const [globalFilter, setGlobalFilter] = useState("");
-    const columns = [
+    const columns = useMemo(() => [
         {
             accessorKey: "id",
-            header: "Employee ID",
+            header: ({ column }) => <SortButton column={column}>ID</SortButton>,
+            cell: ({ row }) => <span className="font-medium">{row.original.id}</span>,
         },
         {
-            accessorKey: "fullName",
-            header: ({ column }) => (<Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Full Name
-          <ArrowUpDown className="ml-2 h-4 w-4"/>
-        </Button>),
+            accessorKey: "name",
+            header: ({ column }) => <SortButton column={column}>Full Name</SortButton>,
         },
         {
             accessorKey: "email",
-            header: "Email",
+            header: ({ column }) => <SortButton column={column}>Email</SortButton>,
         },
         {
             accessorKey: "department",
-            header: "Department",
+            header: ({ column }) => <SortButton column={column}>Department</SortButton>,
         },
         {
             accessorKey: "position",
             header: "Position",
         },
         {
-            accessorKey: "employmentDate",
-            header: "Employment Date",
-        },
-        {
             accessorKey: "status",
             header: "Status",
-            cell: ({ row }) => {
-                const status = row.getValue("status");
-                return (<Badge className={cn(statusStyles[status] || '')}>
-            {status}
-          </Badge>);
-            },
+            cell: ({ row }) => <Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>,
         },
         {
             id: "actions",
             header: "Actions",
+            enableHiding: false,
             cell: ({ row }) => (<DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
+            <Button type="button" variant="ghost" size="icon">
               <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4"/>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link to={`/teachers/${row.original.id}/view`}>
+              <Link to={`/teachers/${row.original.id}`}>
                 <Eye className="mr-2 h-4 w-4"/> View Profile
               </Link>
             </DropdownMenuItem>
@@ -80,77 +76,56 @@ export function TeachersDataTable({ data, onDelete }) {
                 <Pencil className="mr-2 h-4 w-4"/> Edit Details
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onDelete(row.original.id)} className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.id)}>
               <Trash2 className="mr-2 h-4 w-4"/> Delete Teacher
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>),
         },
-    ];
+    ], [onDelete]);
+
     const table = useReactTable({
         data,
         columns,
+        state: { sorting, globalFilter },
+        initialState: { pagination: { pageSize: 10 } },
         onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
+        onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        state: {
-            sorting,
-            columnFilters,
-            globalFilter,
-        },
-        onGlobalFilterChange: setGlobalFilter,
     });
-    const exportData = useCallback(() => {
-        if (!data.length) return;
-        const headers = [
-            "Employee ID",
-            "Full Name",
-            "Email",
-            "Department",
-            "Position",
-            "Employment Date",
-            "Status",
-        ];
-        const csvContent = [
-            headers.join(","),
-            ...data.map((t) => [t.id, t.fullName, t.email, t.department, t.position, t.employmentDate, t.status].join(",")),
-        ].join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", "teachers_list.csv");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }, [data]);
+
     return (<div className="space-y-4">
-      <div className="flex items-center py-4 gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"/>
-          <Input placeholder="Search teachers..." value={globalFilter ?? ""} onChange={(event) => setGlobalFilter(event.target.value)} className="pl-8"/>
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+          <Input className="pl-9" placeholder="Search teachers..." value={globalFilter ?? ""} onChange={(event) => setGlobalFilter(event.target.value)}/>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              <Filter className="mr-2 h-4 w-4"/> Filter Department
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => table.getColumn("department")?.setFilterValue("")}>All</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button variant="outline" onClick={exportData}>
-          <FileDown className="mr-2 h-4 w-4"/> Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Select value={table.getColumn('department')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('department')?.setFilterValue(value === 'all' ? undefined : value)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Department"/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {[...new Set(data.map((t) => t.department).filter(Boolean))].map((dept) => (<SelectItem key={dept} value={dept}>{dept}</SelectItem>))}
+            </SelectContent>
+          </Select>
+          <Select value={table.getColumn('status')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Status"/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {[...new Set(data.map((t) => t.status).filter(Boolean))].map((status) => (<SelectItem key={status} value={status}>{status}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (<TableRow key={headerGroup.id}>
@@ -160,25 +135,34 @@ export function TeachersDataTable({ data, onDelete }) {
               </TableRow>))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+            {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No teachers found" description="Teacher records will be available once the backend is connected."/>
+                  <EmptyState title="No teachers found" description="Teacher records will appear once they are added." actionLabel="Add Teacher" actionTo="/teachers/add"/>
                 </TableCell>
               </TableRow>)}
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-          Previous
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-          Next
-        </Button>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} teachers
+        </p>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+            Next
+          </Button>
+        </div>
       </div>
     </div>);
 }
