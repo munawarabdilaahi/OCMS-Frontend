@@ -36,6 +36,7 @@ import { StudentResultDetails } from '@/features/results/StudentResultDetails';
 import { PaymentsList } from '@/features/payments/PaymentsList';
 import { InvoicesList } from '@/features/payments/InvoicesList';
 import { PaymentDetails } from '@/features/payments/PaymentDetails';
+import { FeesList } from '@/features/payments/FeesList';
 import { Settings } from '@/features/settings/Settings';
 import { RolesList } from '@/features/settings/RolesList';
 import { Permissions } from '@/features/settings/Permissions';
@@ -93,6 +94,8 @@ function matchRoute(pathname) {
         return <PaymentsList />;
     if (pathname === '/payments/invoices')
         return <InvoicesList />;
+    if (pathname === '/payments/fees')
+        return <FeesList />;
     if (/^\/payments\/[^/]+$/.test(pathname))
         return <PaymentDetails />;
     if (pathname === '/reports')

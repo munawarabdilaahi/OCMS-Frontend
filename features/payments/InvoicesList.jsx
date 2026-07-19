@@ -1,8 +1,9 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowLeft, ArrowUpDown, Download, Eye, MoreHorizontal, Search } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from '@/lib/router';
 import { EmptyState } from '@/components/common/EmptyState';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,9 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { formatCurrency, formatDate, paymentStatuses } from '@/features/payments/PaymentsList';
+import { getInvoices, getInvoiceStats } from '@/services/payments.service';
+
+const invoiceStatuses = ['Pending', 'Partial', 'Paid', 'Overdue'];
 const statusStyles = {
     Paid: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    Partial: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
     Overdue: 'bg-destructive/10 text-destructive',
     Failed: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
 };
@@ -26,18 +31,10 @@ function SortButton({ column, children }) {
 }
 function exportInvoices(rows) {
     if (!rows.length) return;
-    const headers = ['Invoice Number', 'Student', 'Program', 'Amount', 'Balance', 'Status', 'Due Date'];
+    const headers = ['Invoice Number', 'Student', 'Fee', 'Amount', 'Paid', 'Balance', 'Status', 'Due Date'];
     const body = rows.map((row) => {
-        const invoice = row.original;
-        return [
-            invoice.invoiceNumber,
-            invoice.student,
-            invoice.program,
-            invoice.amount,
-            invoice.balance,
-            invoice.status,
-            invoice.dueDate,
-        ];
+        const inv = row.original;
+        return [inv.invoice_number, inv.student, inv.fee_name, inv.amount, inv.paid_amount, inv.balance, inv.status, inv.due_date];
     });
     const csv = [headers, ...body]
         .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
@@ -51,32 +48,54 @@ function exportInvoices(rows) {
     URL.revokeObjectURL(url);
 }
 export function InvoicesList() {
+    const [invoices, setInvoices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [stats, setStats] = useState({ total_invoiced: 0, outstanding_balance: 0, open_invoices: 0 });
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
-    const data = [];
+
+    const fetchData = useCallback(() => {
+        setLoading(true);
+        Promise.all([getInvoices(), getInvoiceStats()])
+            .then(([invoiceData, statsData]) => {
+                setInvoices(Array.isArray(invoiceData) ? invoiceData : []);
+                if (statsData) setStats(statsData);
+            })
+            .catch(() => setError('Failed to load invoices.'))
+            .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => { fetchData(); }, [fetchData]);
+
     const columns = useMemo(() => [
         {
-            accessorKey: 'invoiceNumber',
-            header: ({ column }) => <SortButton column={column}>Invoice Number</SortButton>,
-            cell: ({ row }) => <span className="font-medium">{row.original.invoiceNumber}</span>,
+            accessorKey: 'invoice_number',
+            header: ({ column }) => <SortButton column={column}>Invoice #</SortButton>,
+            cell: ({ row }) => <span className="font-medium">{row.original.invoice_number}</span>,
         },
         {
             accessorKey: 'student',
             header: ({ column }) => <SortButton column={column}>Student</SortButton>,
             cell: ({ row }) => (<div>
             <p className="font-medium">{row.original.student}</p>
-            <p className="text-xs text-muted-foreground">{row.original.studentId}</p>
+            <p className="text-xs text-muted-foreground">{row.original.admission_no}</p>
           </div>),
         },
         {
-            accessorKey: 'program',
-            header: 'Program',
+            accessorKey: 'fee_name',
+            header: 'Fee',
         },
         {
             accessorKey: 'amount',
             header: ({ column }) => <SortButton column={column}>Amount</SortButton>,
             cell: ({ row }) => formatCurrency(row.original.amount),
+        },
+        {
+            accessorKey: 'paid_amount',
+            header: ({ column }) => <SortButton column={column}>Paid</SortButton>,
+            cell: ({ row }) => formatCurrency(row.original.paid_amount),
         },
         {
             accessorKey: 'balance',
@@ -89,9 +108,9 @@ export function InvoicesList() {
             cell: ({ row }) => (<Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge>),
         },
         {
-            accessorKey: 'dueDate',
+            accessorKey: 'due_date',
             header: ({ column }) => <SortButton column={column}>Due Date</SortButton>,
-            cell: ({ row }) => formatDate(row.original.dueDate),
+            cell: ({ row }) => formatDate(row.original.due_date),
         },
         {
             id: 'actions',
@@ -105,7 +124,7 @@ export function InvoicesList() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to={`/payments/${row.original.invoiceNumber}`}>
+                <Link to={`/payments/${row.original.invoice_number}`}>
                   <Eye />
                   View Details
                 </Link>
@@ -114,11 +133,12 @@ export function InvoicesList() {
           </DropdownMenu>),
         },
     ], []);
+
     const table = useReactTable({
-        data,
+        data: invoices,
         columns,
         state: { sorting, globalFilter, columnFilters },
-        initialState: { pagination: { pageSize: 6 } },
+        initialState: { pagination: { pageSize: 8 } },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
@@ -127,6 +147,7 @@ export function InvoicesList() {
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     });
+
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
@@ -147,33 +168,20 @@ export function InvoicesList() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Total Invoiced</CardTitle>
-            <CardDescription>All issued invoices</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{formatCurrency(0)}</p>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Total Invoiced</CardTitle><CardDescription>All issued invoices</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-semibold">{formatCurrency(stats.total_invoiced)}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Outstanding Balance</CardTitle>
-            <CardDescription>Pending, overdue, and failed invoices</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">{formatCurrency(0)}</p>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Outstanding Balance</CardTitle><CardDescription>Pending, overdue, and partial invoices</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-semibold">{formatCurrency(stats.outstanding_balance)}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Open Invoices</CardTitle>
-            <CardDescription>Invoices not fully paid</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">0</p>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Open Invoices</CardTitle><CardDescription>Invoices not fully paid</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-semibold">{stats.open_invoices}</p></CardContent>
         </Card>
       </div>
+
+      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
 
       <Card>
         <CardHeader>
@@ -181,6 +189,7 @@ export function InvoicesList() {
           <CardDescription>Search, filter, export, and inspect all finance invoices.</CardDescription>
         </CardHeader>
         <CardContent>
+          {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (
           <div className="space-y-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="grid gap-3 sm:grid-cols-[minmax(0,320px)_170px]">
@@ -189,24 +198,17 @@ export function InvoicesList() {
                   <Input className="pl-9" placeholder="Search invoices..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
                 </div>
                 <Select value={table.getColumn('status')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status"/>
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Status"/></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    {paymentStatuses.map((status) => (<SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>))}
+                    {invoiceStatuses.map((status) => (<SelectItem key={status} value={status}>{status}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
-
               <Button type="button" variant="outline" onClick={() => exportInvoices(table.getFilteredRowModel().rows)}>
-                <Download />
-                Export
+                <Download /> Export
               </Button>
             </div>
-
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>
@@ -218,9 +220,7 @@ export function InvoicesList() {
                 </TableHeader>
                 <TableBody>
                   {table.getRowModel().rows?.length ? (table.getRowModel().rows.map((row) => (<TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>))}
+                        {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                       </TableRow>))) : (<TableRow>
                       <TableCell colSpan={columns.length} className="p-6">
                         <EmptyState title="No invoices found" description="Invoices will appear once they are created in the system."/>
@@ -229,24 +229,15 @@ export function InvoicesList() {
                 </TableBody>
               </Table>
             </div>
-
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} invoices
-              </p>
+              <p className="text-sm text-muted-foreground">Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} invoices</p>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-                </span>
-                <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                  Next
-                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+                <span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
               </div>
             </div>
-          </div>
+          </div>)}
         </CardContent>
       </Card>
     </div>);

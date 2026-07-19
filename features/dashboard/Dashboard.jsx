@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, GraduationCap, Users, Building2, CalendarClock, FileCheck2, UserPlus, Activity } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, Building2, CalendarClock, FileCheck2, UserPlus, Activity, DollarSign, CreditCard, AlertTriangle, Receipt } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { getStudentStats } from '@/services/students.service';
+import { getInvoiceStats, getPaymentStats } from '@/services/payments.service';
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
@@ -45,11 +46,15 @@ function PieTooltip({ active, payload }) {
 export function Dashboard() {
     const { user } = useAuth();
     const [stats, setStats] = useState(null);
+    const [financeStats, setFinanceStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     useEffect(() => {
-        getStudentStats()
-            .then((data) => setStats(data))
+        Promise.all([getStudentStats(), getInvoiceStats(), getPaymentStats()])
+            .then(([studentData, invoiceData, paymentData]) => {
+                setStats(studentData);
+                setFinanceStats({ ...invoiceData, ...paymentData });
+            })
             .catch(() => setError('Failed to load dashboard data.'))
             .finally(() => setLoading(false));
     }, []);
@@ -73,6 +78,13 @@ export function Dashboard() {
         <StatCard label="Active Students" value={stats?.activeStudents} icon={Users} color="text-sky-600 dark:text-sky-400" loading={loading}/>
         <StatCard label="Departments" value={stats?.totalDepartments} icon={Building2} color="text-violet-600 dark:text-violet-400" loading={loading}/>
         <StatCard label="Exam Schedules" value={stats?.totalExamSchedules} icon={CalendarClock} color="text-amber-600 dark:text-amber-400" loading={loading}/>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total Invoiced" value={financeStats?.total_invoiced ? `$${financeStats.total_invoiced.toLocaleString()}` : '$0'} icon={Receipt} color="text-blue-600 dark:text-blue-400" loading={loading}/>
+        <StatCard label="Total Received" value={financeStats?.total_received ? `$${financeStats.total_received.toLocaleString()}` : '$0'} icon={DollarSign} color="text-emerald-600 dark:text-emerald-400" loading={loading}/>
+        <StatCard label="Outstanding" value={financeStats?.outstanding_balance ? `$${financeStats.outstanding_balance.toLocaleString()}` : '$0'} icon={AlertTriangle} color="text-amber-600 dark:text-amber-400" loading={loading}/>
+        <StatCard label="Open Invoices" value={financeStats?.open_invoices ?? 0} icon={CreditCard} color="text-rose-600 dark:text-rose-400" loading={loading}/>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">

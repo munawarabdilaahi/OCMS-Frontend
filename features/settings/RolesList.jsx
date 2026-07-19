@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getRoles, createRole, deleteRole } from '@/services/roles.service';
+import { getRoles, createRole, updateRole, deleteRole } from '@/services/roles.service';
 
 const PERMISSION_LABELS = {
     'dashboard:view': 'View Dashboard',
@@ -30,7 +29,8 @@ export function RolesList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [newRoleName, setNewRoleName] = useState('');
+    const [editingRole, setEditingRole] = useState(null);
+    const [roleName, setRoleName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchRoles = useCallback(() => {
@@ -43,17 +43,35 @@ export function RolesList() {
 
     useEffect(() => { fetchRoles(); }, [fetchRoles]);
 
-    async function handleCreate() {
-        if (!newRoleName.trim()) { toast.error('Role name is required.'); return; }
+    function openCreateDialog() {
+        setEditingRole(null);
+        setRoleName('');
+        setDialogOpen(true);
+    }
+
+    function openEditDialog(role) {
+        setEditingRole(role);
+        setRoleName(role.name);
+        setDialogOpen(true);
+    }
+
+    async function handleSubmit() {
+        if (!roleName.trim()) { toast.error('Role name is required.'); return; }
         setIsSubmitting(true);
         try {
-            await createRole({ name: newRoleName.trim() });
-            toast.success('Role created.');
+            if (editingRole) {
+                await updateRole(editingRole.id, { name: roleName.trim() });
+                toast.success('Role updated.');
+            } else {
+                await createRole({ name: roleName.trim() });
+                toast.success('Role created.');
+            }
             setDialogOpen(false);
-            setNewRoleName('');
+            setRoleName('');
+            setEditingRole(null);
             fetchRoles();
         } catch (err) {
-            toast.error(err.message || 'Failed to create role.');
+            toast.error(err.message || 'Failed to save role.');
         } finally {
             setIsSubmitting(false);
         }
@@ -84,7 +102,7 @@ export function RolesList() {
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Roles & Permissions</h1>
           <p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${roles.length} role${roles.length !== 1 ? 's' : ''} configured`}</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}><Plus /> Add Role</Button>
+        <Button onClick={openCreateDialog}><Plus /> Add Role</Button>
       </div>
 
       {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
@@ -92,16 +110,22 @@ export function RolesList() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {roles.map((role) => {
             const perms = parsePermissions(role.permissions);
+            const isBuiltin = role.name === 'Admin' || role.name === 'SuperAdmin';
             return (<Card key={role.id}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="size-5 text-primary"/>
                   <CardTitle className="text-lg">{role.name}</CardTitle>
                 </div>
-                {role.name !== 'Admin' && role.name !== 'SuperAdmin' && (
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(role.id, role.name)}>
-                    <Trash2 className="size-4"/>
-                  </Button>
+                {!isBuiltin && (
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(role)}>
+                      <Pencil className="size-4"/>
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(role.id, role.name)}>
+                      <Trash2 className="size-4"/>
+                    </Button>
+                  </div>
                 )}
               </CardHeader>
               <CardContent>
@@ -120,15 +144,15 @@ export function RolesList() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Role</DialogTitle>
-            <DialogDescription>Add a new role to the system.</DialogDescription>
+            <DialogTitle>{editingRole ? 'Edit Role' : 'Create Role'}</DialogTitle>
+            <DialogDescription>{editingRole ? 'Update the role name.' : 'Add a new role to the system.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Role Name</Label><Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. Librarian"/></div>
+            <div className="space-y-2"><Label>Role Name</Label><Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="e.g. Librarian"/></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create'}</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : editingRole ? 'Update' : 'Create'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
