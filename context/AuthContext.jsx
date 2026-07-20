@@ -23,13 +23,16 @@ export function AuthProvider({ children }) {
     const login = useCallback(async (credentials) => {
         const session = await loginRequest(credentials);
         const apiUser = session?.user;
+        if (!apiUser?.role?.name) {
+            throw new Error('Authentication failed: role information missing from server response.');
+        }
         const nextUser = {
-            id: apiUser?.id ?? 'api-session',
-            name: apiUser?.name ?? credentials.name ?? 'OCMS User',
-            email: apiUser?.email ?? credentials.email,
-            role: apiUser?.role?.name ?? apiUser?.role ?? ROLES.ADMIN,
-            studentId: apiUser?.studentId,
-            status: apiUser?.status ?? 'Active',
+            id: apiUser.id,
+            name: apiUser.name || '',
+            email: apiUser.email || '',
+            role: apiUser.role.name,
+            studentId: apiUser.studentId,
+            status: apiUser.status || 'ACTIVE',
         };
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
         window.localStorage.setItem(TOKEN_KEY, session?.token || '');
