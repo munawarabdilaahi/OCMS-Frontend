@@ -10,9 +10,11 @@ import { navigationItems } from '@/lib/navigation';
 export function Sidebar({ collapsed = false, onToggleCollapse, onNavigate }) {
     const { user } = useAuth();
 
-    const items = navigationItems || [];
-
     const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+
+    const items = (navigationItems || []).filter(
+      (item) => !item.roles || item.roles.length === 0 || item.roles.includes(userRole),
+    );
 
     return (
         <aside className="flex h-full flex-col bg-card">

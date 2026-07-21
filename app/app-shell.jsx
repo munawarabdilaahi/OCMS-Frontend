@@ -42,7 +42,19 @@ import { RolesList } from '@/features/settings/RolesList';
 import { Permissions } from '@/features/settings/Permissions';
 import { UsersList } from '@/features/settings/UsersList';
 import { PlaceholderPage } from '@/features/PlaceholderPage';
+import { UnauthorizedPage } from '@/features/UnauthorizedPage';
+import { navigationItems } from '@/lib/navigation';
 const authRoutes = new Set(['/login', '/forgot-password', '/reset-password']);
+
+function isRouteAllowed(pathname, userRole) {
+    const sorted = [...navigationItems].sort((a, b) => b.href.length - a.href.length);
+    for (const item of sorted) {
+        if (pathname === item.href || pathname.startsWith(item.href + '/')) {
+            return item.roles.includes(userRole);
+        }
+    }
+    return true;
+}
 function matchRoute(pathname) {
     if (pathname === '/' || pathname === '/dashboard')
         return <Dashboard />;
@@ -113,7 +125,7 @@ function matchRoute(pathname) {
 function RoutedApp() {
     const pathname = usePathname() || '/';
     const router = useRouter();
-    const { isAuthenticated, isHydrated } = useAuth();
+    const { isAuthenticated, isHydrated, user } = useAuth();
     const isAuthRoute = authRoutes.has(pathname);
     useEffect(() => {
         if (isHydrated && !isAuthenticated && !isAuthRoute) {
@@ -133,7 +145,13 @@ function RoutedApp() {
     }
     if (!isHydrated || !isAuthenticated)
         return null;
-    return <DashboardLayout>{matchRoute(pathname)}</DashboardLayout>;
+    const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
+    const allowed = isRouteAllowed(pathname, userRole);
+    return (
+        <DashboardLayout>
+            {allowed ? matchRoute(pathname) : <UnauthorizedPage />}
+        </DashboardLayout>
+    );
 }
 export function AppShell() {
     return (<ThemeProvider>
