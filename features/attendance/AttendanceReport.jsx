@@ -12,7 +12,6 @@ import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 import { getAttendance, getAttendanceStats } from '@/services/attendance.service';
 import { getCourses } from '@/services/courses.service';
-import { AttendanceList } from '@/features/attendance/AttendanceList';
 
 const statusStyles = {
     PRESENT: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
@@ -98,7 +97,7 @@ export function AttendanceReport() {
               <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                 <SelectTrigger><SelectValue placeholder="All Courses"/></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Courses</SelectItem>
+                  <SelectItem value="">All Courses</SelectItem>
                   {courses.map((c) => (<SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>))}
                 </SelectContent>
               </Select>
