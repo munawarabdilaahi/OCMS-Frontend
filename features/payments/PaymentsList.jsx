@@ -214,7 +214,7 @@ export function PaymentsList() {
         const params = isStudent ? { student_id: user?.student_id } : {};
         Promise.all([getPayments(params), getPaymentStats(params)])
             .then(([paymentData, statsData]) => {
-                setPayments(Array.isArray(paymentData) ? paymentData : []);
+                setPayments(Array.isArray(paymentData?.data) ? paymentData.data : []);
                 if (statsData) setStats(statsData);
             })
             .catch(() => setError('Failed to load payment data.'))
