@@ -17,7 +17,6 @@ export function EditStudent() {
             if (!data) { setError('Student not found.'); return; }
             const name = data.name || data.user?.name || '';
             const nameParts = name.split(' ');
-            const dept = typeof data.department === 'object' && data.department !== null ? data.department.name : data.department || '';
             const status = data.status || 'ACTIVE';
             setStudent({
                 id: String(data.id || ''),
@@ -28,7 +27,7 @@ export function EditStudent() {
                 email: data.email || data.user?.email || '',
                 phone: data.phone || data.user?.phone || '',
                 address: data.address || '',
-                department: dept || 'Computer Science',
+                department_id: String(data.department_id ?? ''),
                 status: status.charAt(0) + status.slice(1).toLowerCase(),
             });
         })

@@ -1,4 +1,3 @@
-export const departments = ['Computer Science', 'Business', 'Engineering', 'Health Sciences', 'Education'];
 export const programs = [
     'BSc Software Engineering',
     'BBA Accounting',

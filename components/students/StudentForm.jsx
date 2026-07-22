@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
@@ -10,17 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { departments, genders, studentStatuses } from '@/features/students/students-data';
+import { genders, studentStatuses } from '@/features/students/students-data';
 import { addStudentSchema, editStudentSchema, emptyStudentValues } from '@/features/students/student-schema';
+import { getDepartments } from '@/services/departments.service';
 import { createStudent, updateStudent } from '@/services/students.service';
-
-const departmentNameToId = {
-    'Computer Science': 1,
-    'Business': 2,
-    'Engineering': 3,
-    'Health Sciences': 4,
-    'Education': 5,
-};
 function FieldError({ message }) {
     if (!message) {
         return null;
@@ -46,6 +40,12 @@ function SelectField({ control, name, label, options, disabled, error }) {
 export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }) {
     const navigate = useNavigate();
     const isEdit = mode === 'edit';
+    const [departments, setDepartments] = useState([]);
+    useEffect(() => {
+        getDepartments().then((data) => {
+            if (Array.isArray(data)) setDepartments(data);
+        }).catch(() => {});
+    }, []);
     const { control, register, handleSubmit, formState: { errors, isSubmitting, isSubmitSuccessful }, } = useForm({
         resolver: zodResolver(isEdit ? editStudentSchema : addStudentSchema),
         defaultValues,
@@ -56,7 +56,7 @@ export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }
                 name: `${values.firstName} ${values.lastName}`.trim(),
                 email: values.email,
                 phone: values.phone,
-                department_id: departmentNameToId[values.department] || 1,
+                department_id: Number(values.department_id),
                 date_of_birth: values.dateOfBirth || undefined,
                 gender: values.gender,
                 address: values.address,
@@ -125,7 +125,18 @@ export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }
               <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} {...register('phone')}/>
               <FieldError message={errors.phone?.message}/>
             </div>
-            <SelectField control={control} name="department" label="Department" options={departments} disabled={isSubmitting} error={errors.department}/>
+            <div className="space-y-2">
+              <Label>Department</Label>
+              <Controller control={control} name="department_id" render={({ field }) => (<Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.department_id)}>
+                      <SelectValue placeholder="Select department"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (<SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>)}/>
+              <FieldError message={errors.department_id?.message}/>
+            </div>
             <SelectField control={control} name="status" label="Status" options={studentStatuses} disabled={isSubmitting} error={errors.status}/>
           </div>
 
