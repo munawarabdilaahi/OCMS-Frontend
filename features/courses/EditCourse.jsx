@@ -32,8 +32,7 @@ export function EditCourse() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        getDepartments().then((response) => {
-            const data = response?.data ?? [];
+        getDepartments().then((data) => {
             if (Array.isArray(data)) setDepartments(data);
         }).catch(() => {});
     }, []);

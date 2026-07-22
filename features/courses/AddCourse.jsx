@@ -29,8 +29,7 @@ export function AddCourse() {
 
     useEffect(() => {
         getDepartments()
-            .then((response) => {
-                const data = response?.data ?? [];
+            .then((data) => {
                 if (Array.isArray(data)) setDepartments(data);
             })
             .catch(() => {});

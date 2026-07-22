@@ -172,8 +172,7 @@ export function DepartmentsList() {
         setLoading(true);
         setError('');
         getDepartments()
-            .then((response) => {
-            const data = response?.data ?? [];
+            .then((data) => {
             setDepartments(Array.isArray(data) ? data : []);
         })
             .catch((err) => setError(err.message || 'Failed to load departments.'))

@@ -42,8 +42,7 @@ export function TeacherForm({ mode = 'add', defaultValues }) {
 
     useEffect(() => {
         getDepartments()
-            .then((response) => {
-                const data = response?.data ?? [];
+            .then((data) => {
                 if (Array.isArray(data) && data.length > 0) {
                     setDepartments(data.map((d) => d.name));
                 }
@@ -70,8 +69,7 @@ export function TeacherForm({ mode = 'add', defaultValues }) {
 
     async function onSubmit(values) {
         try {
-            const deptResponse = await getDepartments();
-            const deptData = deptResponse?.data ?? [];
+            const deptData = await getDepartments();
             const dept = Array.isArray(deptData) ? deptData.find((d) => d.name === values.department) : null;
 
             const payload = {

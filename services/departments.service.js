@@ -1,7 +1,7 @@
 import { api } from '@/services/api';
 export async function getDepartments() {
     const response = await api.get('/departments');
-    return response.data;
+    return response.data?.data || [];
 }
 export async function getDepartment(id) {
     const response = await api.get(`/departments/${id}`);
