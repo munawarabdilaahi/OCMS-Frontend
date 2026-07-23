@@ -32,17 +32,17 @@ export async function refreshAccessToken(refreshToken) {
 
 export async function logoutRequest(refreshToken) {
     const response = await api.post('/auth/logout', { refreshToken });
-    return response.data;
+    return response.data?.data ?? null;
 }
 
 export async function generateEmailVerificationRequest() {
     const response = await api.post('/auth/verify-email/generate');
-    return response.data;
+    return response.data?.data ?? null;
 }
 
 export async function verifyEmailRequest(token) {
     const response = await api.post('/auth/verify-email', { token });
-    return response.data;
+    return response.data?.data ?? null;
 }
 
 export async function getSessionsRequest() {
@@ -52,10 +52,10 @@ export async function getSessionsRequest() {
 
 export async function revokeSessionRequest(sessionId) {
     const response = await api.delete(`/auth/sessions/${sessionId}`);
-    return response.data;
+    return response.data?.data ?? null;
 }
 
 export async function revokeAllSessionsRequest() {
     const response = await api.delete('/auth/sessions');
-    return response.data;
+    return response.data?.data ?? null;
 }
