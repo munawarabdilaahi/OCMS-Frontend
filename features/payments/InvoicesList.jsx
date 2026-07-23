@@ -60,7 +60,7 @@ export function InvoicesList() {
         setLoading(true);
         Promise.all([getInvoices(), getInvoiceStats()])
             .then(([invoiceData, statsData]) => {
-                setInvoices(Array.isArray(invoiceData) ? invoiceData : []);
+                setInvoices(Array.isArray(invoiceData?.data) ? invoiceData.data : []);
                 if (statsData) setStats(statsData);
             })
             .catch(() => setError('Failed to load invoices.'))
