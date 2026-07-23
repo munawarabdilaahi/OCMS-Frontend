@@ -17,5 +17,5 @@ export async function updateDepartment(id, payload) {
 }
 export async function deleteDepartment(id) {
     const response = await api.delete(`/departments/${id}`);
-    return response.data;
+    return response.data?.data ?? null;
 }

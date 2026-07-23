@@ -22,7 +22,7 @@ export async function updateFee(id, payload) {
 
 export async function deleteFee(id) {
     const response = await api.delete(`/fees/${id}`);
-    return response.data;
+    return response.data?.data ?? null;
 }
 
 export async function getInvoices(params = {}) {
@@ -52,7 +52,7 @@ export async function updateInvoice(id, payload) {
 
 export async function deleteInvoice(id) {
     const response = await api.delete(`/invoices/${id}`);
-    return response.data;
+    return response.data?.data ?? null;
 }
 
 export async function getInvoiceStats(params = {}) {

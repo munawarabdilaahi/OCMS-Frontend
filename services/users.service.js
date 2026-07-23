@@ -17,5 +17,5 @@ export async function updateUser(id, payload) {
 }
 export async function deleteUser(id) {
     const response = await api.delete(`/users/${id}`);
-    return response.data;
+    return response.data?.data ?? null;
 }

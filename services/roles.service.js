@@ -17,5 +17,5 @@ export async function updateRole(id, payload) {
 }
 export async function deleteRole(id) {
     const response = await api.delete(`/roles/${id}`);
-    return response.data;
+    return response.data?.data ?? null;
 }

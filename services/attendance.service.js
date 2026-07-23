@@ -21,5 +21,5 @@ export async function updateAttendance(id, payload) {
 }
 export async function deleteAttendance(id) {
     const response = await api.delete(`/attendance/${id}`);
-    return response.data;
+    return response.data?.data ?? null;
 }
