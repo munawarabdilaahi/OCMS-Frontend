@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,7 +78,7 @@ function DepartmentsDataTable({ data, onDelete }) {
                   Edit
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.id, row.original.name)}>
+              <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original)}>
                 <Trash2 />
                 Delete
               </DropdownMenuItem>
@@ -168,6 +169,8 @@ export function DepartmentsList() {
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const fetchDepartments = useCallback(() => {
         setLoading(true);
         setError('');
@@ -181,18 +184,31 @@ export function DepartmentsList() {
     useEffect(() => {
         fetchDepartments();
     }, [fetchDepartments]);
-    const handleDelete = useCallback(async (id, name) => {
-        if (!window.confirm(`Delete department "${name}"? This action cannot be undone.`)) return;
+    const handleDelete = useCallback(async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await deleteDepartment(id);
+            await deleteDepartment(deleteTarget.id);
             toast.success('Department deleted successfully.');
-            setDepartments((prev) => prev.filter((d) => d.id !== id));
+            setDepartments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
         }
         catch (err) {
             toast.error(err.message || 'Failed to delete department.');
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
         }
-    }, []);
+    }, [deleteTarget]);
     return (<div className="space-y-6">
+      <ConfirmationDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Department"
+        description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Departments</h1>

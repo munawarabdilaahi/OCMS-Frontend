@@ -76,7 +76,7 @@ export function TeachersDataTable({ data, onDelete }) {
                 <Pencil className="mr-2 h-4 w-4"/> Edit Details
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.id)}>
+            <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original)}>
               <Trash2 className="mr-2 h-4 w-4"/> Delete Teacher
             </DropdownMenuItem>
           </DropdownMenuContent>

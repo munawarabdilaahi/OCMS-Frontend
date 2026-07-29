@@ -1,38 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Users, UserCheck, UserX, Building2, Plus } from 'lucide-react';
+import { Users, UserCheck, UserX, Building2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { StudentsDataTable } from '@/components/students/StudentsDataTable';
-import { getStudents } from '@/services/students.service';
-import { Link } from '@/lib/router';
-function SkeletonRow() {
-    return (<div className="flex items-center gap-4 px-4 py-3">
-      <div className="h-4 w-12 animate-pulse rounded bg-muted"/>
-      <div className="h-4 w-32 animate-pulse rounded bg-muted"/>
-      <div className="h-4 w-40 animate-pulse rounded bg-muted"/>
-      <div className="h-4 w-20 animate-pulse rounded bg-muted"/>
-      <div className="h-4 w-16 animate-pulse rounded bg-muted"/>
-      <div className="h-4 w-24 animate-pulse rounded bg-muted"/>
-      <div className="h-5 w-16 animate-pulse rounded-full bg-muted"/>
-    </div>);
-}
-function TableSkeleton() {
-    return (<div className="rounded-lg border bg-card">
-      <div className="border-b px-4 py-3">
-        <div className="flex gap-16">
-          {[80, 100, 120, 70, 60, 90, 70].map((w, i) => (<div key={i} className="h-4 animate-pulse rounded bg-muted" style={{ width: w }}/>))}
-        </div>
-      </div>
-      {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i}/>)}
-    </div>);
-}
+import { getStudents, deleteStudent } from '@/services/students.service';
+import { toast } from 'sonner';
+import { StatsGrid } from '@/components/common/StatsGrid';
+import { PageHeader } from '@/components/common/PageHeader';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
+
 export function StudentsList() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [deletedId, setDeletedId] = useState('');
     const [totalCount, setTotalCount] = useState(0);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     useEffect(() => {
         getStudents()
             .then((response) => {
@@ -52,67 +36,50 @@ export function StudentsList() {
             .catch(() => setError('Failed to load students.'))
             .finally(() => setLoading(false));
     }, []);
-    const handleDelete = useCallback((studentId) => {
-        setStudents((currentStudents) => currentStudents.filter((student) => student.id !== studentId));
-        setDeletedId(studentId);
-    }, []);
+    const handleDelete = useCallback(async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            await deleteStudent(deleteTarget.id);
+            toast.success('Student deleted successfully.');
+            setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+            setTotalCount((prev) => Math.max(0, prev - 1));
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete student.');
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
+        }
+    }, [deleteTarget]);
     const stats = useMemo(() => {
         const total = students.length;
         const active = students.filter((s) => s.status === 'ACTIVE').length;
         const inactive = students.filter((s) => s.status !== 'ACTIVE').length;
         const departments = new Set(students.map((s) => s.department).filter(Boolean)).size;
-        return { total, active, inactive, departments };
+        return [
+            { label: 'Total Students', value: total, icon: Users, color: 'text-emerald-600 dark:text-emerald-400' },
+            { label: 'Active', value: active, icon: UserCheck, color: 'text-sky-600 dark:text-sky-400' },
+            { label: 'Inactive', value: inactive, icon: UserX, color: 'text-amber-600 dark:text-amber-400' },
+            { label: 'Departments', value: departments, icon: Building2, color: 'text-violet-600 dark:text-violet-400' },
+        ];
     }, [students]);
-    const statCards = [
-        { label: 'Total Students', value: stats.total, icon: Users, color: 'text-emerald-600 dark:text-emerald-400' },
-        { label: 'Active', value: stats.active, icon: UserCheck, color: 'text-sky-600 dark:text-sky-400' },
-        { label: 'Inactive', value: stats.inactive, icon: UserX, color: 'text-amber-600 dark:text-amber-400' },
-        { label: 'Departments', value: stats.departments, icon: Building2, color: 'text-violet-600 dark:text-violet-400' },
-    ];
-    return (<div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Students</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {loading ? 'Loading...' : `${totalCount} student${totalCount !== 1 ? 's' : ''} registered`}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link to="/students/add">
-              <Plus />
-              Add Student
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {error && (<Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>)}
-
-      {deletedId && (<Alert>
-          <AlertTitle>Student removed</AlertTitle>
-          <AlertDescription>{deletedId} was removed from the system.</AlertDescription>
-        </Alert>)}
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map(({ label, value, icon: Icon, color }) => (<Card key={label}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-            <Icon className={`size-5 ${color}`}/>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{loading ? '—' : value}</p>
-          </CardContent>
-        </Card>))}
-      </div>
-
+    return <div className="space-y-6">
+      <ConfirmationDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Student"
+        description={`Are you sure you want to delete ${deleteTarget?.name || 'this student'}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
+      <PageHeader title="Students" description={`${totalCount} student${totalCount !== 1 ? 's' : ''} registered`} actionLabel="+ Add Student" actionTo="/students/add" loading={loading} />
+      {error && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+      <StatsGrid items={stats} loading={loading} />
       <Card>
         <CardContent className="p-0">
-          {loading ? <TableSkeleton /> : <StudentsDataTable data={students} onDelete={handleDelete}/>}
+          {loading ? <TableSkeleton /> : <StudentsDataTable data={students} onDelete={(student) => setDeleteTarget(student)} />}
         </CardContent>
       </Card>
-    </div>);
+    </div>;
 }

@@ -99,7 +99,7 @@ export function StudentsDataTable({ data, onDelete }) {
                   Edit
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.id)}>
+              <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original)}>
                 <Trash2 />
                 Delete
               </DropdownMenuItem>

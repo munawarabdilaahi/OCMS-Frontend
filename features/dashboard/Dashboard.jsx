@@ -1,56 +1,11 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, GraduationCap, Users, Building2, CalendarClock, FileCheck2, UserPlus, Activity, DollarSign, CreditCard, AlertTriangle, Receipt, ClipboardCheck, BarChart3, School, UserCheck } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BookOpen, GraduationCap, Users, Building2, CalendarClock, DollarSign, CreditCard, AlertTriangle, Receipt, ClipboardCheck, UserCheck, BarChart3, Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { getAdminDashboard, getTeacherDashboard, getStudentDashboard } from '@/services/dashboard.service';
-
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
-
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    SUSPENDED: 'bg-destructive/10 text-destructive',
-    DELETED: 'bg-muted text-muted-foreground',
-};
-
-function StatCard({ label, value, icon: Icon, color, loading }) {
-    return (<Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <Icon className={`size-5 ${color}`}/>
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-bold">{loading ? '—' : (value ?? 0).toLocaleString()}</p>
-      </CardContent>
-    </Card>);
-}
-
-function CustomTooltip({ active, payload, label }) {
-    if (active && payload && payload.length) {
-      return (<div className="rounded-lg border bg-card p-3 shadow-md">
-        <p className="text-sm font-medium">{label}</p>
-        <p className="text-sm text-muted-foreground">{payload[0].value} student{payload[0].value !== 1 ? 's' : ''}</p>
-      </div>);
-    }
-    return null;
-}
-
-function PieTooltip({ active, payload }) {
-    if (active && payload && payload.length) {
-      return (<div className="rounded-lg border bg-card p-3 shadow-md">
-        <p className="text-sm font-medium">{payload[0].name}</p>
-        <p className="text-sm text-muted-foreground">{payload[0].value} student{payload[0].value !== 1 ? 's' : ''}</p>
-      </div>);
-    }
-    return null;
-}
-
-function Skeleton({ className }) {
-    return <div className={`animate-pulse rounded bg-muted ${className}`} />;
-}
+import { StatCard } from '@/components/common/StatCard';
 
 function AdminDashboard() {
     const [data, setData] = useState(null);
@@ -65,10 +20,6 @@ function AdminDashboard() {
     }, []);
 
     if (error) return (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>);
-
-    const departmentData = data?.students?.breakdown || [];
-    const genderData = data?.students?.genderBreakdown || [];
-    const recentStudents = data?.recentStudents || [];
 
     return (<div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -108,7 +59,7 @@ function TeacherDashboard() {
     }, []);
 
     if (error) return (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>);
-    if (!data && loading) return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>;
+    if (!data && loading) return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 w-full animate-pulse rounded-md bg-muted" />)}</div>;
     if (!data) return <p className="text-sm text-muted-foreground">No dashboard data available.</p>;
 
     return (<div className="space-y-6">
@@ -188,7 +139,7 @@ function StudentDashboard() {
     }, []);
 
     if (error) return (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>);
-    if (!data && loading) return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>;
+    if (!data && loading) return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 w-full animate-pulse rounded-md bg-muted" />)}</div>;
     if (!data) return <p className="text-sm text-muted-foreground">No dashboard data available.</p>;
 
     return (<div className="space-y-6">
