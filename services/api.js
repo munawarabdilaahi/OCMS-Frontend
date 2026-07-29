@@ -75,7 +75,7 @@ api.interceptors.response.use(
                     { headers: { 'Content-Type': 'application/json' } }
                 );
 
-                const { token: newToken, refreshToken: newRefreshToken } = response.data?.data || {};
+                const { accessToken: newToken, refreshToken: newRefreshToken } = response.data?.data || {};
 
                 if (newToken) {
                     window.localStorage.setItem('ocms_token', newToken);
