@@ -1,3 +1,4 @@
+import { Inbox } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
@@ -16,6 +17,12 @@ export function RecentActivitiesTable({ activities }) {
         </div>
       </CardHeader>
       <CardContent>
+        {(!activities || activities.length === 0) ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-8">
+            <Inbox className="size-8 text-muted-foreground/50" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">No recent activities to display.</p>
+          </div>
+        ) : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -27,7 +34,7 @@ export function RecentActivitiesTable({ activities }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {activities.map((activity) => (<TableRow key={activity.id}>
+            {activities.map((activity) => (<TableRow key={activity.id} className="transition-colors hover:bg-accent/50">
                 <TableCell>
                   <div className="min-w-52">
                     <p className="font-medium">{activity.activity}</p>
@@ -43,6 +50,7 @@ export function RecentActivitiesTable({ activities }) {
               </TableRow>))}
           </TableBody>
         </Table>
+        )}
       </CardContent>
     </Card>);
 }

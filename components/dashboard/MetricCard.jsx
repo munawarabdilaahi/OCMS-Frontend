@@ -9,16 +9,17 @@ const toneClasses = {
 };
 export function MetricCard({ stat }) {
     const Icon = stat.icon;
-    return (<Card className="overflow-hidden">
+    return (<Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
       <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-normal">{stat.value}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{stat.value}</p>
         </div>
-        <span className={cn('flex size-10 items-center justify-center rounded-md', toneClasses[stat.tone])}>
+        <span className={cn('flex size-10 items-center justify-center rounded-lg transition-colors group-hover:bg-accent/50', toneClasses[stat.tone])}>
           <Icon className="size-5"/>
         </span>
       </CardHeader>
+      {stat.change && (
       <CardContent>
         <div className="flex items-center gap-2 text-sm">
           <span className="inline-flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-300">
@@ -28,5 +29,6 @@ export function MetricCard({ stat }) {
           <span className="text-muted-foreground">{stat.trend}</span>
         </div>
       </CardContent>
+      )}
     </Card>);
 }

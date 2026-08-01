@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { navigationItems } from '@/lib/navigation';
+import { UnauthorizedPage } from '@/features/UnauthorizedPage';
 
 const authRoutes = new Set(['/login', '/forgot-password', '/reset-password']);
 
@@ -36,7 +37,7 @@ export function ProtectedRoute({ children }) {
     const allowed = isRouteAllowed(pathname, userRole);
 
     if (!allowed) {
-        return <div>Access denied. You do not have permission to view this page.</div>;
+        return <UnauthorizedPage />;
     }
 
     return children;

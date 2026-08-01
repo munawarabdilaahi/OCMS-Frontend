@@ -11,10 +11,11 @@ function DashboardTooltip({ active, payload, label, formatter }) {
         return null;
     }
     const item = payload[0];
-    return (<div className="rounded-md border bg-popover px-3 py-2 text-sm text-popover-foreground shadow-md">
-      <p className="mb-1 font-medium">{label}</p>
+    return (<div className="rounded-lg border bg-popover px-4 py-3 text-sm text-popover-foreground shadow-lg">
+      <p className="mb-0.5 font-medium">{label}</p>
       <p className="text-muted-foreground">
-        {item.name}: <span className="font-medium text-foreground">{formatter(item.value)}</span>
+        {item.name}:{' '}
+        <span className="font-semibold text-foreground tabular-nums">{formatter(item.value)}</span>
       </p>
     </div>);
 }
@@ -22,7 +23,7 @@ export function AreaChartCard({ title, description, data, dataKey, color, gradie
     return (<Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         <div className="h-72 w-full">

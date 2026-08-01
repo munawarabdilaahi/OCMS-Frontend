@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 const statusStyles = {
-    Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Graduated: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    Suspended: 'bg-destructive/10 text-destructive',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    SUSPENDED: 'bg-destructive/10 text-destructive',
+    GRADUATED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    WITHDRAWN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    DELETED: 'bg-muted text-muted-foreground',
 };
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
