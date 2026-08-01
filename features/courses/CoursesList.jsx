@@ -8,9 +8,9 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
@@ -18,12 +18,10 @@ import { ROLES } from '@/lib/roles';
 import { getCourses, deleteCourse } from '@/services/courses.service';
 
 export const courseSemesters = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4', 'Summer'];
-export const courseStatuses = ['ACTIVE', 'DRAFT', 'COMPLETED', 'ARCHIVED'];
+export const courseStatuses = ['ACTIVE', 'INACTIVE'];
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    DRAFT: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    COMPLETED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    ARCHIVED: 'bg-muted text-muted-foreground',
+    INACTIVE: 'bg-muted text-muted-foreground',
 };
 
 function SortButton({ column, children }) {
@@ -52,7 +50,7 @@ function exportCourses(rows) {
     URL.revokeObjectURL(url);
 }
 
-function CoursesDataTable({ data, isStudent = false, onDelete }) {
+function CoursesDataTable({ data, isStudent = false }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const columns = useMemo(() => [
@@ -112,7 +110,7 @@ function CoursesDataTable({ data, isStudent = false, onDelete }) {
                       Edit
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original.id, row.original.title)}>
+                  <DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget({ id: row.original.id, title: row.original.title })}>
                     <Trash2 />
                     Delete
                   </DropdownMenuItem>
@@ -120,7 +118,7 @@ function CoursesDataTable({ data, isStudent = false, onDelete }) {
             </DropdownMenuContent>
           </DropdownMenu>),
         },
-    ], [isStudent, onDelete]);
+    ], [isStudent]);
 
     const table = useReactTable({
         data,
@@ -201,6 +199,8 @@ export function CoursesList() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     useEffect(() => {
         getCourses()
             .then((response) => {
@@ -210,17 +210,22 @@ export function CoursesList() {
             .catch(() => setError('Failed to load courses.'))
             .finally(() => setLoading(false));
     }, []);
-    const handleDelete = useCallback(async (id, title) => {
-        if (!window.confirm(`Delete course "${title}"? This action cannot be undone.`)) return;
+    const handleDelete = useCallback(async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await deleteCourse(id);
+            await deleteCourse(deleteTarget.id);
             toast.success('Course deleted successfully.');
-            setCourses((prev) => prev.filter((c) => c.id !== id));
+            setCourses((prev) => prev.filter((c) => c.id !== deleteTarget.id));
         } catch (err) {
             toast.error(err.message || 'Failed to delete course.');
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
         }
-    }, []);
+    }, [deleteTarget]);
     return (<div className="space-y-6">
+      <ConfirmationDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete Course" description={`Are you sure you want to delete "${deleteTarget?.title}"? This action cannot be undone.`} confirmLabel="Delete" loading={deleting} onConfirm={handleDelete}/>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">
@@ -251,7 +256,7 @@ export function CoursesList() {
               <p className="text-muted-foreground">Loading courses...</p>
             </div>
           ) : (
-            <CoursesDataTable data={courses} isStudent={isStudent} onDelete={handleDelete}/>
+            <CoursesDataTable data={courses} isStudent={isStudent} />
           )}
         </CardContent>
       </Card>

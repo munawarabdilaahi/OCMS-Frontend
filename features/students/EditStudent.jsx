@@ -28,7 +28,7 @@ export function EditStudent() {
                 phone: data.phone || data.user?.phone || '',
                 address: data.address || '',
                 department_id: String(data.department_id ?? ''),
-                status: status.charAt(0) + status.slice(1).toLowerCase(),
+                status: String(status).toUpperCase(),
             });
         })
             .catch(() => setError('Failed to load student.'))

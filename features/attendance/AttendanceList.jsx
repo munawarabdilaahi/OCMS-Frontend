@@ -1,14 +1,12 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { ArrowUpDown, CalendarCheck, Clock3, Download, FileBarChart, MoreHorizontal, Plus, Search, UserCheck, UserMinus, UserRoundCheck, } from 'lucide-react';
+import { ArrowUpDown, CalendarCheck, Clock3, Download, Plus, Search, UserCheck, UserMinus, UserRoundCheck, } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';

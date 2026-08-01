@@ -34,7 +34,7 @@ export function EditCourse() {
     useEffect(() => {
         getDepartments().then((data) => {
             if (Array.isArray(data)) setDepartments(data);
-        }).catch(() => {});
+        }).catch(() => toast.error('Failed to load form data.'));
     }, []);
 
     useEffect(() => {

@@ -32,7 +32,7 @@ function TakeAttendance() {
                 setCourses(Array.isArray(courseData) ? courseData : []);
                 setStudents(Array.isArray(studentData) ? studentData : []);
             })
-            .catch(() => {})
+            .catch(() => toast.error('Failed to load form data.'))
             .finally(() => setLoading(false));
     }, []);
 

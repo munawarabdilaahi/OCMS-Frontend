@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowUpDown, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
@@ -38,6 +39,8 @@ export function FeesList() {
     const [error, setError] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingFee, setEditingFee] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [sorting, setSorting] = useState([]);
@@ -108,14 +111,18 @@ export function FeesList() {
         }
     }
 
-    async function handleDelete(feeId, feeName) {
-        if (!window.confirm(`Delete fee structure "${feeName}"?`)) return;
+    async function handleDelete() {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await deleteFee(feeId);
+            await deleteFee(deleteTarget.id);
             toast.success('Fee structure deleted.');
-            setFees((prev) => prev.filter((f) => f.id !== feeId));
+            setFees((prev) => prev.filter((f) => f.id !== deleteTarget.id));
         } catch (err) {
             toast.error(err.message || 'Failed to delete.');
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
         }
     }
 
@@ -155,7 +162,7 @@ export function FeesList() {
             cell: ({ row }) => (
                 <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(row.original)}><Pencil className="size-4"/></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(row.original.id, row.original.name)}><Trash2 className="size-4"/></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteTarget(row.original)}><Trash2 className="size-4"/></Button>
                 </div>
             ),
         },
@@ -175,6 +182,7 @@ export function FeesList() {
     });
 
     return (<div className="space-y-6">
+      <ConfirmationDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete Fee Structure" description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`} confirmLabel="Delete" loading={deleting} onConfirm={handleDelete}/>
       <div className="space-y-3">
         <Button asChild type="button" variant="ghost" className="-ml-3 w-fit">
           <Link to="/payments"><ArrowLeft /> Back to payments</Link>

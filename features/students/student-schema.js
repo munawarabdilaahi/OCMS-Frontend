@@ -33,5 +33,5 @@ export const emptyStudentValues = {
     phone: '',
     address: '',
     department_id: '',
-    status: 'Active',
+    status: 'ACTIVE',
 };

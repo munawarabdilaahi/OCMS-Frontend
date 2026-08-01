@@ -13,12 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { getExamSchedules } from '@/services/exams.service';
-export const examStatuses = ['Scheduled', 'Ongoing', 'Completed', 'Cancelled'];
+export const examStatuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 const statusStyles = {
-    Scheduled: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    Ongoing: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Cancelled: 'bg-destructive/10 text-destructive',
+    SCHEDULED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    IN_PROGRESS: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    COMPLETED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    CANCELLED: 'bg-destructive/10 text-destructive',
 };
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -26,12 +26,15 @@ function SortButton({ column, children }) {
       <ArrowUpDown className="ml-1 size-3.5"/>
     </Button>);
 }
+function courseLabel(course) {
+    return typeof course === 'object' && course !== null ? (course.title || course.code || '') : (course || '');
+}
 function exportExams(rows) {
     if (!rows.length) return;
     const headers = ['Exam Name', 'Course', 'Date', 'Total Marks', 'Status'];
     const body = rows.map((row) => {
         const exam = row.original;
-        return [exam.name ?? exam.title, exam.course, exam.date ?? exam.exam_date, exam.totalMarks, exam.status];
+        return [exam.name ?? exam.title, courseLabel(exam.course), exam.date ?? exam.exam_date, exam.totalMarks, exam.status];
     });
     const csv = [headers, ...body]
         .map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(','))
@@ -48,7 +51,7 @@ function ExamsDataTable({ data }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
-    const allCourses = useMemo(() => [...new Set(data.map((e) => e.course).filter(Boolean))], [data]);
+    const allCourses = useMemo(() => [...new Set(data.map((e) => courseLabel(e.course)).filter(Boolean))], [data]);
     const columns = useMemo(() => [
         {
             accessorKey: 'name',
@@ -58,6 +61,7 @@ function ExamsDataTable({ data }) {
         {
             accessorKey: 'course',
             header: ({ column }) => <SortButton column={column}>Course</SortButton>,
+            cell: ({ row }) => courseLabel(row.original.course) || '-',
         },
         {
             accessorKey: 'date',
@@ -87,7 +91,7 @@ function ExamsDataTable({ data }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link to={`/results?course=${encodeURIComponent(row.original.course)}`}>View Results</Link>
+                <Link to={`/results?course=${encodeURIComponent(row.original.course?.id ?? row.original.course_id)}`}>View Results</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>),

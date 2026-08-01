@@ -1,5 +1,5 @@
 import { TeacherForm } from '@/components/teachers/TeacherForm';
-export default function AddTeacher() {
+export function AddTeacher() {
     return (<div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add Teacher</h1>

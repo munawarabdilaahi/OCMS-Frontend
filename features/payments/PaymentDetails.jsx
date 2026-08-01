@@ -1,4 +1,4 @@
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from '@/lib/router';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -11,15 +11,18 @@ import { formatCurrency, formatDate } from '@/features/payments/PaymentsList';
 import { getInvoiceByNumber } from '@/services/payments.service';
 
 const statusStyles = {
-    Paid: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Partial: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    Overdue: 'bg-destructive/10 text-destructive',
+    PAID: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    PARTIAL: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    OVERDUE: 'bg-destructive/10 text-destructive',
+    CANCELLED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    REFUNDED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
 };
 const paymentStatusStyles = {
-    Completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Failed: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    COMPLETED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    FAILED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    REFUNDED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
 };
 
 export function PaymentDetails() {
@@ -104,9 +107,9 @@ export function PaymentDetails() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Payment History</CardTitle><CardDescription>{invoice.payment_count || 0} payment(s) recorded</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Payment History</CardTitle><CardDescription>{invoice.payments?.length || 0} payment(s) recorded</CardDescription></CardHeader>
           <CardContent>
-            {invoice.payment_count > 0 ? (
+            {invoice.payments?.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -117,7 +120,14 @@ export function PaymentDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* Payment records would be populated from a detailed invoice endpoint */}
+                  {invoice.payments?.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>{formatDate(p.created_at)}</TableCell>
+                      <TableCell>{p.payment_method || '-'}</TableCell>
+                      <TableCell>{formatCurrency(p.amount)}</TableCell>
+                      <TableCell><Badge className={cn('whitespace-nowrap', (paymentStatusStyles[p.status] || ''))}>{p.status}</Badge></TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             ) : (

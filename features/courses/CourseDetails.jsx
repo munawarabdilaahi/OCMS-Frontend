@@ -5,24 +5,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { InfoGrid } from '@/components/common/InfoGrid';
 import { getCourse } from '@/services/courses.service';
 import { cn } from '@/lib/cn';
 
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    DRAFT: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    COMPLETED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    ARCHIVED: 'bg-muted text-muted-foreground',
+    INACTIVE: 'bg-muted text-muted-foreground',
 };
-
-function InfoGrid({ items }) {
-    return (<div className="grid gap-4 md:grid-cols-2">
-      {items.map((item) => (<div key={item.label} className="rounded-lg border bg-secondary/30 p-4">
-          <p className="text-sm text-muted-foreground">{item.label}</p>
-          <p className="mt-1 font-medium">{item.value}</p>
-        </div>))}
-    </div>);
-}
 
 export function CourseDetails() {
     const { id } = useParams();

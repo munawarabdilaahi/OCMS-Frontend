@@ -4,7 +4,7 @@ import { TeacherForm } from '@/components/teachers/TeacherForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { getTeacher } from '@/services/teachers.service';
-export default function EditTeacher() {
+export function EditTeacher() {
     const { teacherId } = useParams();
     const [teacher, setTeacher] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,6 +16,8 @@ export default function EditTeacher() {
                 if (!data) { setError('Teacher not found.'); return; }
                 const name = data.name || '';
                 const nameParts = name.split(' ');
+                const statusValue = String(data.status || 'ACTIVE').toUpperCase();
+                const status = ['Active', 'On Leave', 'Contract', 'Inactive', 'Retired'].find((s) => s.toUpperCase() === statusValue) || 'Active';
                 setTeacher({
                     id: String(data.id || ''),
                     firstName: nameParts[0] || '',
@@ -28,7 +30,7 @@ export default function EditTeacher() {
                     qualification: data.qualification || '',
                     employmentDate: data.employment_date ? data.employment_date.split('T')[0] : '',
                     address: data.address || '',
-                    status: data.status === 'ACTIVE' ? 'Active' : data.status || 'Active',
+                    status,
                 });
             })
             .catch(() => setError('Failed to load teacher.'))

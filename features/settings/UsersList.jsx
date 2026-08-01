@@ -1,18 +1,19 @@
-import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { ArrowUpDown, Download, MoreHorizontal, Plus, Search, Trash2, UserCog } from 'lucide-react';
+import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
+import { ArrowUpDown, MoreHorizontal, Plus, Trash2, UserCog } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getUsers, createUser, updateUser, deleteUser } from '@/services/users.service';
 import { getRoles } from '@/services/roles.service';
 import { cn } from '@/lib/cn';
@@ -37,12 +38,16 @@ export function UsersList() {
     const [error, setError] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editUser, setEditUser] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const [formName, setFormName] = useState('');
     const [formEmail, setFormEmail] = useState('');
     const [formPassword, setFormPassword] = useState('');
     const [formRoleId, setFormRoleId] = useState('');
     const [formStatus, setFormStatus] = useState('ACTIVE');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [sorting, setSorting] = useState([]);
+    const [globalFilter, setGlobalFilter] = useState('');
 
     const fetchData = useCallback(() => {
         setLoading(true);
@@ -107,14 +112,18 @@ export function UsersList() {
         }
     }
 
-    async function handleDelete(userId) {
-        if (!window.confirm('Delete this user?')) return;
+    async function handleDelete() {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await deleteUser(userId);
+            await deleteUser(deleteTarget.id);
             toast.success('User deleted.');
-            setUsers((prev) => prev.filter((u) => u.id !== userId));
+            setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
         } catch (err) {
             toast.error(err.message || 'Failed to delete user.');
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
         }
     }
 
@@ -132,15 +141,17 @@ export function UsersList() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => openEdit(row.original)}>Edit</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onSelect={() => handleDelete(row.original.id)}>Delete</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget(row.original)}>Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>),
         },
-    ], [roles]);
+    ], []);
 
     const table = useReactTable({
         data: users, columns,
-        state: { sorting: [], globalFilter: '' },
+        state: { sorting, globalFilter },
+        onSortingChange: setSorting,
+        onGlobalFilterChange: setGlobalFilter,
         initialState: { pagination: { pageSize: 10 } },
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -149,6 +160,7 @@ export function UsersList() {
     });
 
     return (<div className="space-y-6">
+      <ConfirmationDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete User" description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`} confirmLabel="Delete" loading={deleting} onConfirm={handleDelete}/>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Users</h1>
@@ -156,53 +168,30 @@ export function UsersList() {
         </div>
         <Button onClick={openCreate}><Plus /> Add User</Button>
       </div>
-
       {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
-
       <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>Manage user accounts, roles, and status.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>User Management</CardTitle><CardDescription>Manage user accounts, roles, and status.</CardDescription></CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading users...</p></div>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-lg border bg-card">
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>
-                      {hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}
-                    </TableRow>))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
-                      </TableRow>
-                    )) : (
-                      <TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No users found" description="Create a user to get started."/></TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-                <span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
-                <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
-              </div>
+          ) : (<div className="space-y-4">
+            <div className="rounded-lg border bg-card">
+              <Table>
+                <TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>
+                <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No users found" description="Create a user to get started."/></TableCell></TableRow>)}</TableBody>
+              </Table>
             </div>
-          )}
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+              <span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
+              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+            </div>
+          </div>)}
         </CardContent>
       </Card>
-
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editUser ? 'Edit User' : 'Create User'}</DialogTitle>
-            <DialogDescription>{editUser ? 'Update user details and role.' : 'Add a new user to the system.'}</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{editUser ? 'Edit User' : 'Create User'}</DialogTitle><DialogDescription>{editUser ? 'Update user details and role.' : 'Add a new user to the system.'}</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Name</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)}/></div>
             <div className="space-y-2"><Label>Email</Label><Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}/></div>

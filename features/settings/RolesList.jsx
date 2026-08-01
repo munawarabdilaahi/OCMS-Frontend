@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,8 @@ export function RolesList() {
     const [error, setError] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingRole, setEditingRole] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     const [roleName, setRoleName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -77,14 +80,18 @@ export function RolesList() {
         }
     }
 
-    async function handleDelete(roleId, roleName) {
-        if (!window.confirm(`Delete role "${roleName}"?`)) return;
+    async function handleDelete() {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await deleteRole(roleId);
+            await deleteRole(deleteTarget.id);
             toast.success('Role deleted.');
-            setRoles((prev) => prev.filter((r) => r.id !== roleId));
+            setRoles((prev) => prev.filter((r) => r.id !== deleteTarget.id));
         } catch (err) {
             toast.error(err.message || 'Failed to delete role.');
+        } finally {
+            setDeleting(false);
+            setDeleteTarget(null);
         }
     }
 
@@ -97,6 +104,7 @@ export function RolesList() {
     }
 
     return (<div className="space-y-6">
+      <ConfirmationDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete Role" description={`Are you sure you want to delete role "${deleteTarget?.name}"? This action cannot be undone.`} confirmLabel="Delete" loading={deleting} onConfirm={handleDelete}/>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Roles & Permissions</h1>
@@ -122,7 +130,7 @@ export function RolesList() {
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(role)}>
                       <Pencil className="size-4"/>
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(role.id, role.name)}>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteTarget(role)}>
                       <Trash2 className="size-4"/>
                     </Button>
                   </div>

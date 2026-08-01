@@ -1,27 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from '@/lib/router';
-import { CalendarDays, CreditCard, GraduationCap, Mail, Pencil, Phone, UserRound } from 'lucide-react';
+import { Mail, Pencil, Phone, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { InfoGrid } from '@/components/common/InfoGrid';
 import { getStudent } from '@/services/students.service';
 import { cn } from '@/lib/cn';
 const statusStyles = {
-    Active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Graduated: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    Suspended: 'bg-destructive/10 text-destructive',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    SUSPENDED: 'bg-destructive/10 text-destructive',
+    GRADUATED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    WITHDRAWN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    DELETED: 'bg-muted text-muted-foreground',
 };
-function InfoGrid({ items }) {
-    return (<div className="grid gap-4 md:grid-cols-2">
-      {items.map((item) => (<div key={item.label} className="rounded-lg border bg-secondary/30 p-4">
-          <p className="text-sm text-muted-foreground">{item.label}</p>
-          <p className="mt-1 font-medium">{item.value}</p>
-        </div>))}
-    </div>);
-}
 export function StudentProfile() {
     const { studentId } = useParams();
     const [student, setStudent] = useState(null);

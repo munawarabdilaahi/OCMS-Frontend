@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from '@/lib/router';
-import { CalendarDays, Mail, Phone, Pencil, UserRound } from 'lucide-react';
+import { Mail, Phone, Pencil, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,7 @@ function InfoGrid({ items }) {
     </div>);
 }
 
-export default function TeacherProfile() {
+export function TeacherProfile() {
     const { teacherId } = useParams();
     const [teacher, setTeacher] = useState(null);
     const [loading, setLoading] = useState(true);

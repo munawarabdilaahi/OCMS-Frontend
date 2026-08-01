@@ -25,13 +25,13 @@ export async function getMeRequest() {
     return response.data?.data;
 }
 
-export async function refreshAccessToken(refreshToken) {
-    const response = await api.post('/auth/refresh-token', { refreshToken });
+export async function refreshAccessToken() {
+    const response = await api.post('/auth/refresh-token');
     return response.data?.data;
 }
 
-export async function logoutRequest(refreshToken) {
-    const response = await api.post('/auth/logout', { refreshToken });
+export async function logoutRequest() {
+    const response = await api.post('/auth/logout');
     return response.data?.data ?? null;
 }
 

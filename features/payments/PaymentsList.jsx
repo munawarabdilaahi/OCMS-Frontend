@@ -16,12 +16,13 @@ import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 import { getPayments, getPaymentStats } from '@/services/payments.service';
 
-export const paymentStatuses = ['Completed', 'Pending', 'Failed'];
+export const paymentStatuses = ['COMPLETED', 'PENDING', 'FAILED', 'REFUNDED'];
 export const paymentMethods = ['Bank Transfer', 'Mobile Money', 'Card', 'Cash', 'Scholarship'];
 const statusStyles = {
-    Completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Failed: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    COMPLETED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    FAILED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    REFUNDED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
 };
 export function formatCurrency(value) {
     return new Intl.NumberFormat('en-US', {
@@ -211,7 +212,7 @@ export function PaymentsList() {
 
     const fetchData = useCallback(() => {
         setLoading(true);
-        const params = isStudent ? { student_id: user?.student_id } : {};
+        const params = isStudent ? { student_id: user?.studentId } : {};
         Promise.all([getPayments(params), getPaymentStats(params)])
             .then(([paymentData, statsData]) => {
                 setPayments(Array.isArray(paymentData?.data) ? paymentData.data : []);
@@ -219,7 +220,7 @@ export function PaymentsList() {
             })
             .catch(() => setError('Failed to load payment data.'))
             .finally(() => setLoading(false));
-    }, [isStudent, user?.student_id]);
+    }, [isStudent, user?.studentId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 

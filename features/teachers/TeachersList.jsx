@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { StatsGrid } from '@/components/common/StatsGrid';
 import { PageHeader } from '@/components/common/PageHeader';
 
-export default function TeachersList() {
+export function TeachersList() {
     const [teachers, setTeachers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');

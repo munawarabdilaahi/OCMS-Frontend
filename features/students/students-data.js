@@ -5,5 +5,5 @@ export const programs = [
     'BSc Nursing',
     'BA Education',
 ];
-export const studentStatuses = ['Active', 'Pending', 'Graduated', 'Suspended'];
+export const studentStatuses = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'GRADUATED', 'WITHDRAWN'];
 export const genders = ['Female', 'Male', 'Other'];

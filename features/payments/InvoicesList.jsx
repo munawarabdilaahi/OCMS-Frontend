@@ -15,13 +15,14 @@ import { cn } from '@/lib/cn';
 import { formatCurrency, formatDate, paymentStatuses } from '@/features/payments/PaymentsList';
 import { getInvoices, getInvoiceStats } from '@/services/payments.service';
 
-const invoiceStatuses = ['Pending', 'Partial', 'Paid', 'Overdue'];
+const invoiceStatuses = ['PENDING', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED'];
 const statusStyles = {
-    Paid: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Pending: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    Partial: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    Overdue: 'bg-destructive/10 text-destructive',
-    Failed: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    PAID: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    PARTIAL: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    OVERDUE: 'bg-destructive/10 text-destructive',
+    CANCELLED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    REFUNDED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
 };
 function SortButton({ column, children }) {
     return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>

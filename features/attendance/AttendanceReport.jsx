@@ -35,7 +35,7 @@ export function AttendanceReport() {
         getCourses().then((r) => {
             const data = r?.data ?? [];
             if (Array.isArray(data)) setCourses(data);
-        }).catch(() => {});
+        }).catch(() => setError('Failed to load courses.'));
     }, []);
 
     useEffect(() => {

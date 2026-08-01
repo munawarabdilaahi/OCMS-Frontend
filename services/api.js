@@ -1,36 +1,46 @@
 import axios from 'axios';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 export const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+    baseURL: API_BASE,
     headers: {
         'Content-Type': 'application/json',
     },
-    withCredentials: false,
+    withCredentials: true,
 });
 
-let isRefreshing = false;
-let failedQueue = [];
+let refreshPromise = null;
+let redirectingToLogin = false;
 
-function processQueue(error, token) {
-    failedQueue.forEach((promise) => {
-        if (error) {
-            promise.reject(error);
-        } else {
-            promise.resolve(token);
-        }
-    });
-    failedQueue = [];
+async function refreshAccessToken() {
+    if (!refreshPromise) {
+        refreshPromise = axios
+            .post(`${API_BASE}/auth/refresh-token`, {}, { withCredentials: true, headers: { 'Content-Type': 'application/json' } })
+            .then((response) => {
+                refreshPromise = null;
+                return response;
+            })
+            .catch((error) => {
+                refreshPromise = null;
+                throw error;
+            });
+    }
+    return refreshPromise;
 }
 
-api.interceptors.request.use((config) => {
-    if (typeof window !== 'undefined') {
-        const token = window.localStorage.getItem('ocms_token');
-        if (token && typeof token === 'string' && token.length > 0) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+function redirectToLoginOnce() {
+    if (redirectingToLogin) return;
+    if (typeof window === 'undefined') return;
+    redirectingToLogin = true;
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/login' && currentPath !== '/forgot-password' && currentPath !== '/reset-password') {
+        window.location.href = '/login';
     }
-    return config;
-});
+    setTimeout(() => {
+        redirectingToLogin = false;
+    }, 3000);
+}
 
 api.interceptors.response.use(
     (response) => response,
@@ -43,63 +53,14 @@ api.interceptors.response.use(
                 return Promise.reject(error);
             }
 
-            const refreshToken = window.localStorage.getItem('ocms_refresh_token');
-
-            if (!refreshToken) {
-                window.localStorage.removeItem('ocms_token');
-                window.localStorage.removeItem('ocms_user');
-                window.localStorage.removeItem('ocms_refresh_token');
-                const currentPath = window.location.pathname;
-                if (currentPath !== '/login' && currentPath !== '/forgot-password' && currentPath !== '/reset-password') {
-                    window.location.href = '/login';
-                }
-                return Promise.reject(error);
-            }
-
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                }).then((token) => {
-                    originalRequest.headers.Authorization = `Bearer ${token}`;
-                    return api(originalRequest);
-                }).catch((err) => Promise.reject(err));
-            }
-
             originalRequest._retry = true;
-            isRefreshing = true;
 
             try {
-                const response = await axios.post(
-                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/refresh-token`,
-                    { refreshToken },
-                    { headers: { 'Content-Type': 'application/json' } }
-                );
-
-                const { accessToken: newToken, refreshToken: newRefreshToken } = response.data?.data || {};
-
-                if (newToken) {
-                    window.localStorage.setItem('ocms_token', newToken);
-                    if (newRefreshToken) {
-                        window.localStorage.setItem('ocms_refresh_token', newRefreshToken);
-                    }
-                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                    processQueue(null, newToken);
-                    return api(originalRequest);
-                }
-
-                throw new Error('No token in refresh response');
-            } catch (refreshError) {
-                processQueue(refreshError, null);
-                window.localStorage.removeItem('ocms_token');
-                window.localStorage.removeItem('ocms_user');
-                window.localStorage.removeItem('ocms_refresh_token');
-                const currentPath = window.location.pathname;
-                if (currentPath !== '/login' && currentPath !== '/forgot-password' && currentPath !== '/reset-password') {
-                    window.location.href = '/login';
-                }
-                return Promise.reject(refreshError);
-            } finally {
-                isRefreshing = false;
+                await refreshAccessToken();
+                return api(originalRequest);
+            } catch {
+                redirectToLoginOnce();
+                return Promise.reject(error);
             }
         }
 
