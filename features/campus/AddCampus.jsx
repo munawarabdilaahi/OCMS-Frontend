@@ -15,6 +15,19 @@ function FieldError({ message }) {
     return <p className="text-sm text-destructive">{message}</p>;
 }
 
+const JSON_FIELDS = ['facilities', 'transport_routes', 'sports_facilities'];
+
+function parseJsonField(value, field) {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'string') return value;
+    if (value.trim() === '') return null;
+    try {
+        return JSON.parse(value.trim());
+    } catch {
+        throw new Error(`${field} must contain valid JSON.`);
+    }
+}
+
 export function AddCampus() {
     const navigate = useNavigate();
     const [form, setForm] = useState({
@@ -53,6 +66,16 @@ export function AddCampus() {
         if (form.website && !/^https?:\/\/.+/.test(form.website)) errs.website = 'Website must start with http:// or https://.';
         if (form.director_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.director_email)) errs.director_email = 'Invalid email format.';
         if (form.virtual_campus_url && !/^https?:\/\/.+/.test(form.virtual_campus_url)) errs.virtual_campus_url = 'URL must start with http:// or https://.';
+        for (const field of JSON_FIELDS) {
+            const value = form[field];
+            if (typeof value === 'string' && value.trim() !== '') {
+                try {
+                    JSON.parse(value.trim());
+                } catch {
+                    errs[field] = `${field} must contain valid JSON.`;
+                }
+            }
+        }
         setErrors(errs);
         return Object.keys(errs).length === 0;
     }
@@ -65,7 +88,11 @@ export function AddCampus() {
             const payload = { university_id: Number(form.university_id) };
             for (const [key, value] of Object.entries(form)) {
                 if (key === 'university_id') continue;
-                if (value !== '' && value !== undefined) payload[key] = value;
+                if (JSON_FIELDS.includes(key)) {
+                    payload[key] = parseJsonField(value, key);
+                } else if (value !== '' && value !== undefined) {
+                    payload[key] = value;
+                }
             }
             await createCampus(payload);
             toast.success('Campus created successfully.');
@@ -261,15 +288,18 @@ export function AddCampus() {
           <CardContent className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="facilities">Facilities (JSON)</Label>
-              <Textarea id="facilities" placeholder='e.g. {"labs": 30, "libraries": 3, "auditoriums": 5}' value={form.facilities} disabled={isSubmitting} onChange={(e) => set('facilities', e.target.value)}/>
+              <Textarea id="facilities" placeholder='e.g. {"labs": 30, "libraries": 3, "auditoriums": 5}' value={form.facilities} disabled={isSubmitting} aria-invalid={Boolean(errors.facilities)} onChange={(e) => set('facilities', e.target.value)}/>
+              <FieldError message={errors.facilities}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="transport_routes">Transport Routes (JSON)</Label>
-              <Textarea id="transport_routes" placeholder='e.g. [{"route": "A", "stops": ["Main Gate", "Library"]}]' value={form.transport_routes} disabled={isSubmitting} onChange={(e) => set('transport_routes', e.target.value)}/>
+              <Textarea id="transport_routes" placeholder='e.g. [{"route": "A", "stops": ["Main Gate", "Library"]}]' value={form.transport_routes} disabled={isSubmitting} aria-invalid={Boolean(errors.transport_routes)} onChange={(e) => set('transport_routes', e.target.value)}/>
+              <FieldError message={errors.transport_routes}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sports_facilities">Sports Facilities (JSON)</Label>
-              <Textarea id="sports_facilities" placeholder='e.g. {"gym": true, "stadium": 1, "pool": true}' value={form.sports_facilities} disabled={isSubmitting} onChange={(e) => set('sports_facilities', e.target.value)}/>
+              <Textarea id="sports_facilities" placeholder='e.g. {"gym": true, "stadium": 1, "pool": true}' value={form.sports_facilities} disabled={isSubmitting} aria-invalid={Boolean(errors.sports_facilities)} onChange={(e) => set('sports_facilities', e.target.value)}/>
+              <FieldError message={errors.sports_facilities}/>
             </div>
           </CardContent>
         </Card>
