@@ -1,7 +1,10 @@
-import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
+import { flexRender, getCoreRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpDown, MoreHorizontal, Plus, Trash2, UserCog } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +13,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,19 +21,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getUsers, createUser, updateUser, deleteUser } from '@/services/users.service';
 import { getRoles } from '@/services/roles.service';
 import { cn } from '@/lib/cn';
+import { SortButton } from '@/components/ui/data-table';
+
+const createUserSchema = z.object({
+    name: z.string().min(1, 'Name is required.'),
+    email: z.string().email('Enter a valid email address.'),
+    password: z.string().min(6, 'Password must be at least 6 characters.'),
+    role_id: z.string().min(1, 'Role is required.'),
+    status: z.string().min(1, 'Status is required.'),
+});
+
+const editUserSchema = z.object({
+    name: z.string().min(1, 'Name is required.'),
+    email: z.string().email('Enter a valid email address.'),
+    password: z.string().optional(),
+    role_id: z.string().min(1, 'Role is required.'),
+    status: z.string().min(1, 'Status is required.'),
+});
 
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     DELETED: 'bg-destructive/10 text-destructive',
 };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 export function UsersList() {
     const [users, setUsers] = useState([]);
@@ -40,62 +54,57 @@ export function UsersList() {
     const [editUser, setEditUser] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    const [formName, setFormName] = useState('');
-    const [formEmail, setFormEmail] = useState('');
-    const [formPassword, setFormPassword] = useState('');
-    const [formRoleId, setFormRoleId] = useState('');
-    const [formStatus, setFormStatus] = useState('ACTIVE');
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [sorting, setSorting] = useState([]);
-    const [globalFilter, setGlobalFilter] = useState('');
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const pageSize = 10;
+
+    const isEdit = Boolean(editUser);
+    const { register, handleSubmit, reset, formState: { errors, isSubmitting }, control } = useForm({
+        resolver: zodResolver(isEdit ? editUserSchema : createUserSchema),
+        defaultValues: { name: '', email: '', password: '', role_id: '', status: 'ACTIVE' },
+    });
 
     const fetchData = useCallback(() => {
         setLoading(true);
-        Promise.all([getUsers(), getRoles()])
+        const params = { page, pageSize };
+        if (search.trim()) params.search = search.trim();
+        Promise.all([getUsers(params), getRoles()])
             .then(([usersRes, rolesData]) => {
                 const data = usersRes?.data ?? [];
                 setUsers(Array.isArray(data) ? data : []);
-                setRoles(Array.isArray(rolesData) ? rolesData : []);
+                setTotalCount(usersRes?.meta?.total ?? data.length);
+                setRoles(Array.isArray(rolesData?.data) ? rolesData.data : Array.isArray(rolesData) ? rolesData : []);
             })
             .catch(() => setError('Failed to load users.'))
             .finally(() => setLoading(false));
-    }, []);
+    }, [search, page]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
     function openCreate() {
         setEditUser(null);
-        setFormName('');
-        setFormEmail('');
-        setFormPassword('');
-        setFormRoleId(roles[0]?.id?.toString() || '');
-        setFormStatus('ACTIVE');
+        reset({ name: '', email: '', password: '', role_id: roles[0]?.id?.toString() || '', status: 'ACTIVE' });
         setDialogOpen(true);
     }
 
     function openEdit(user) {
         setEditUser(user);
-        setFormName(user.name || '');
-        setFormEmail(user.email || '');
-        setFormPassword('');
-        setFormRoleId(user.role_id?.toString() || '');
-        setFormStatus(user.status || 'ACTIVE');
+        reset({
+            name: user.name || '',
+            email: user.email || '',
+            password: '',
+            role_id: user.role_id?.toString() || '',
+            status: user.status || 'ACTIVE',
+        });
         setDialogOpen(true);
     }
 
-    async function handleSubmit() {
-        if (!formName.trim() || !formEmail.trim()) {
-            toast.error('Name and email are required.');
-            return;
-        }
-        if (!editUser && !formPassword.trim()) {
-            toast.error('Password is required for new users.');
-            return;
-        }
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
-            const payload = { name: formName.trim(), email: formEmail.trim(), role_id: Number(formRoleId), status: formStatus };
-            if (formPassword.trim()) payload.password = formPassword.trim();
+            const payload = { name: values.name.trim(), email: values.email.trim(), role_id: Number(values.role_id), status: values.status };
+            if (values.password?.trim()) payload.password = values.password.trim();
             if (editUser) {
                 await updateUser(editUser.id, payload);
                 toast.success('User updated successfully.');
@@ -107,8 +116,6 @@ export function UsersList() {
             fetchData();
         } catch (err) {
             toast.error(err.message || 'Failed to save user.');
-        } finally {
-            setIsSubmitting(false);
         }
     }
 
@@ -118,7 +125,7 @@ export function UsersList() {
         try {
             await deleteUser(deleteTarget.id);
             toast.success('User deleted.');
-            setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+            fetchData();
         } catch (err) {
             toast.error(err.message || 'Failed to delete user.');
         } finally {
@@ -133,58 +140,42 @@ export function UsersList() {
         { accessorKey: 'email', header: ({ column }) => <SortButton column={column}>Email</SortButton> },
         { accessorKey: 'role', header: ({ column }) => <SortButton column={column}>Role</SortButton>, cell: ({ row }) => <Badge variant="secondary">{row.original.role || '-'}</Badge> },
         { accessorKey: 'status', header: 'Status', cell: ({ row }) => <Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge> },
-        {
-            id: 'actions', header: 'Actions', enableHiding: false,
-            cell: ({ row }) => (<DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon"><MoreHorizontal /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => openEdit(row.original)}>Edit</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget(row.original)}>Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>),
-        },
+        { id: 'actions', header: 'Actions', enableHiding: false, cell: ({ row }) => (<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => openEdit(row.original)}>Edit</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget(row.original)}>Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu>) },
     ], []);
 
-    const table = useReactTable({
-        data: users, columns,
-        state: { sorting, globalFilter },
-        onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
-        initialState: { pagination: { pageSize: 10 } },
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-    });
+    const table = useReactTable({ data: users, columns, state: { sorting }, onSortingChange: setSorting, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel() });
+    const pageCount = Math.ceil(totalCount / pageSize);
 
     return (<div className="space-y-6">
       <ConfirmationDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }} title="Delete User" description={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`} confirmLabel="Delete" loading={deleting} onConfirm={handleDelete}/>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Users</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${users.length} user${users.length !== 1 ? 's' : ''}`}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${totalCount} user${totalCount !== 1 ? 's' : ''}`}</p>
         </div>
         <Button onClick={openCreate}><Plus /> Add User</Button>
       </div>
       {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
       <Card>
         <CardHeader><CardTitle>User Management</CardTitle><CardDescription>Manage user accounts, roles, and status.</CardDescription></CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading users...</p></div>
-          ) : (<div className="space-y-4">
+        <CardContent className="space-y-4">
+          <div className="relative max-w-sm">
+            <Input placeholder="Search users..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}/>
+          </div>
+          {loading ? (<div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading users...</p></div>) : (<div className="space-y-4">
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>
                 <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No users found" description="Create a user to get started."/></TableCell></TableRow>)}</TableBody>
               </Table>
             </div>
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
-              <span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
-              <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount} users</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>
+                <span className="text-sm text-muted-foreground">Page {page} of {pageCount || 1}</span>
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page >= pageCount}>Next</Button>
+              </div>
             </div>
           </div>)}
         </CardContent>
@@ -192,27 +183,42 @@ export function UsersList() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editUser ? 'Edit User' : 'Create User'}</DialogTitle><DialogDescription>{editUser ? 'Update user details and role.' : 'Add a new user to the system.'}</DialogDescription></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)}/></div>
-            <div className="space-y-2"><Label>Email</Label><Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)}/></div>
-            <div className="space-y-2"><Label>{editUser ? 'New Password (leave blank to keep)' : 'Password'}</Label><Input type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)}/></div>
-            <div className="space-y-2"><Label>Role</Label>
-              <Select value={formRoleId} onValueChange={setFormRoleId}>
-                <SelectTrigger><SelectValue placeholder="Select role"/></SelectTrigger>
-                <SelectContent>{roles.map((r) => (<SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>))}</SelectContent>
-              </Select>
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+            <div className="space-y-2">
+              <Label htmlFor="user-name">Name</Label>
+              <Input id="user-name" aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('user-name') : undefined} {...register('name')}/>
+              <FieldError id={fieldErrorId('user-name')} message={errors.name?.message}/>
             </div>
-            <div className="space-y-2"><Label>Status</Label>
-              <Select value={formStatus} onValueChange={setFormStatus}>
-                <SelectTrigger><SelectValue/></SelectTrigger>
-                <SelectContent><SelectItem value="ACTIVE">Active</SelectItem><SelectItem value="INACTIVE">Inactive</SelectItem></SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label htmlFor="user-email">Email</Label>
+              <Input id="user-email" type="email" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('user-email') : undefined} {...register('email')}/>
+              <FieldError id={fieldErrorId('user-email')} message={errors.email?.message}/>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</Button>
-          </DialogFooter>
+            <div className="space-y-2">
+              <Label htmlFor="user-password">{editUser ? 'New Password (leave blank to keep)' : 'Password'}</Label>
+              <Input id="user-password" type="password" aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? fieldErrorId('user-password') : undefined} {...register('password')}/>
+              <FieldError id={fieldErrorId('user-password')} message={errors.password?.message}/>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-role">Role</Label>
+              <select id="user-role" className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring" {...register('role_id')}>
+                {roles.map((r) => (<option key={r.id} value={String(r.id)}>{r.name}</option>))}
+              </select>
+              <FieldError id={fieldErrorId('user-role')} message={errors.role_id?.message}/>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-status">Status</Label>
+              <select id="user-status" className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring" {...register('status')}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+              <FieldError id={fieldErrorId('user-status')} message={errors.status?.message}/>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>);

@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
+import { PageHeader } from '@/components/common/PageHeader';
 const phoneRegex = /^\+?[0-9\s().-]{7,20}$/;
 const generalSchema = z.object({
     institutionName: z.string().trim().min(2, 'Institution name is required'),
@@ -53,9 +55,6 @@ const appearanceSchema = z.object({
     density: z.string().trim().min(1, 'Display density is required'),
     accentColor: z.string().trim().min(1, 'Accent color is required'),
 });
-function FieldError({ message }) {
-    return message ? <p className="text-xs text-destructive">{message}</p> : null;
-}
 function FormActions({ isSubmitting }) {
     return (<div className="flex justify-end gap-2 pt-2">
       <Button type="reset" variant="outline">
@@ -74,10 +73,11 @@ function CheckboxField({ label, checked, onChange }) {
     </label>);
 }
 function TextField({ id, label, register, error, type = 'text', ...props }) {
+    const errorId = fieldErrorId(id);
     return (<div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} type={type} aria-invalid={Boolean(error)} {...register(id)} {...props}/>
-      <FieldError message={error?.message}/>
+      <Input id={id} type={type} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} {...register(id)} {...props}/>
+      <FieldError id={errorId} message={error?.message}/>
     </div>);
 }
 function SettingsCard({ icon: Icon, title, description, children }) {
@@ -155,12 +155,7 @@ export function Settings() {
         toast.success(message);
     };
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage profile, account security, notifications, appearance, and system defaults.
-        </p>
-      </div>
+      <PageHeader title="Settings" description="Manage profile, account security, notifications, appearance, and system defaults." />
 
       <Tabs defaultValue="general" className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <TabsList className="h-auto flex-col items-stretch justify-start gap-1 bg-transparent p-0">
@@ -189,8 +184,8 @@ export function Settings() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Campus Address</Label>
-                  <Textarea id="address" aria-invalid={Boolean(generalForm.formState.errors.address)} {...generalForm.register('address')}/>
-                  <FieldError message={generalForm.formState.errors.address?.message}/>
+                  <Textarea id="address" aria-invalid={Boolean(generalForm.formState.errors.address)} aria-describedby={generalForm.formState.errors.address ? fieldErrorId('address') : undefined} {...generalForm.register('address')}/>
+                  <FieldError id={fieldErrorId('address')} message={generalForm.formState.errors.address?.message}/>
                 </div>
                 <FormActions isSubmitting={generalForm.formState.isSubmitting}/>
               </form>

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { PERMISSIONS, ROLES, hasPermission, roleOptions } from '@/lib/roles';
+import { PageHeader } from '@/components/common/PageHeader';
 function PermissionIcon({ allowed }) {
     if (allowed) {
         return (<span className="inline-flex size-7 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
@@ -18,12 +19,7 @@ export function Permissions() {
         return total + PERMISSIONS.filter((permission) => hasPermission(role, permission.key)).length;
     }, 0);
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Permissions</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Audit the frontend RBAC matrix used by protected routes and sidebar visibility.
-        </p>
-      </div>
+      <PageHeader title="Permissions" description="Audit the frontend RBAC matrix used by protected routes and sidebar visibility." />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
