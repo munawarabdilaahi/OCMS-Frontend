@@ -15,17 +15,13 @@ import { genders, studentStatuses } from '@/features/students/students-data';
 import { addStudentSchema, editStudentSchema, emptyStudentValues } from '@/features/students/student-schema';
 import { getDepartments } from '@/services/departments.service';
 import { createStudent, updateStudent } from '@/services/students.service';
-function FieldError({ message }) {
-    if (!message) {
-        return null;
-    }
-    return <p className="text-sm text-destructive">{message}</p>;
-}
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 function SelectField({ control, name, label, options, disabled, error }) {
+    const errorId = fieldErrorId(name);
     return (<div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={name}>{label}</Label>
       <Controller control={control} name={name} render={({ field }) => (<Select value={field.value} disabled={disabled} onValueChange={field.onChange}>
-            <SelectTrigger aria-invalid={Boolean(error)}>
+            <SelectTrigger id={name} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined}>
               <SelectValue placeholder={`Select ${label.toLowerCase()}`}/>
             </SelectTrigger>
             <SelectContent>
@@ -34,7 +30,7 @@ function SelectField({ control, name, label, options, disabled, error }) {
                 </SelectItem>))}
             </SelectContent>
           </Select>)}/>
-      <FieldError message={error?.message}/>
+      <FieldError id={errorId} message={error?.message}/>
     </div>);
 }
 export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }) {
@@ -95,55 +91,55 @@ export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }
             {isEdit && (
             <div className="space-y-2">
               <Label htmlFor="id">Student ID</Label>
-              <Input id="id" disabled aria-invalid={Boolean(errors.id)} {...register('id')}/>
-              <FieldError message={errors.id?.message}/>
+              <Input id="id" disabled aria-invalid={Boolean(errors.id)} aria-describedby={errors.id ? fieldErrorId('id') : undefined} {...register('id')}/>
+              <FieldError id={fieldErrorId('id')} message={errors.id?.message}/>
             </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} {...register('firstName')}/>
-              <FieldError message={errors.firstName?.message}/>
+              <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} aria-describedby={errors.firstName ? fieldErrorId('firstName') : undefined} {...register('firstName')}/>
+              <FieldError id={fieldErrorId('firstName')} message={errors.firstName?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} {...register('lastName')}/>
-              <FieldError message={errors.lastName?.message}/>
+              <Input id="lastName" disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? fieldErrorId('lastName') : undefined} {...register('lastName')}/>
+              <FieldError id={fieldErrorId('lastName')} message={errors.lastName?.message}/>
             </div>
             <SelectField control={control} name="gender" label="Gender" options={genders} disabled={isSubmitting} error={errors.gender}/>
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <Input id="dateOfBirth" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.dateOfBirth)} {...register('dateOfBirth')}/>
-              <FieldError message={errors.dateOfBirth?.message}/>
+              <Input id="dateOfBirth" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.dateOfBirth)} aria-describedby={errors.dateOfBirth ? fieldErrorId('dateOfBirth') : undefined} {...register('dateOfBirth')}/>
+              <FieldError id={fieldErrorId('dateOfBirth')} message={errors.dateOfBirth?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} {...register('email')}/>
-              <FieldError message={errors.email?.message}/>
+              <Input id="email" type="email" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined} {...register('email')}/>
+              <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} {...register('phone')}/>
-              <FieldError message={errors.phone?.message}/>
+              <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? fieldErrorId('phone') : undefined} {...register('phone')}/>
+              <FieldError id={fieldErrorId('phone')} message={errors.phone?.message}/>
             </div>
             <div className="space-y-2">
-              <Label>Department</Label>
+              <Label htmlFor="department_id">Department</Label>
               <Controller control={control} name="department_id" render={({ field }) => (<Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
-                    <SelectTrigger aria-invalid={Boolean(errors.department_id)}>
+                    <SelectTrigger id="department_id" aria-invalid={Boolean(errors.department_id)} aria-describedby={errors.department_id ? fieldErrorId('department_id') : undefined}>
                       <SelectValue placeholder="Select department"/>
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((d) => (<SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>))}
                     </SelectContent>
                   </Select>)}/>
-              <FieldError message={errors.department_id?.message}/>
+              <FieldError id={fieldErrorId('department_id')} message={errors.department_id?.message}/>
             </div>
             <SelectField control={control} name="status" label="Status" options={studentStatuses} disabled={isSubmitting} error={errors.status}/>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Textarea id="address" disabled={isSubmitting} aria-invalid={Boolean(errors.address)} {...register('address')}/>
-            <FieldError message={errors.address?.message}/>
+            <Textarea id="address" disabled={isSubmitting} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? fieldErrorId('address') : undefined} {...register('address')}/>
+            <FieldError id={fieldErrorId('address')} message={errors.address?.message}/>
           </div>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

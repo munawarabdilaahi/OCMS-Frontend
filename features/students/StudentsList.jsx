@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Users, UserCheck, UserX, Building2 } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { StudentsDataTable } from '@/components/students/StudentsDataTable';
 import { getStudents, deleteStudent } from '@/services/students.service';
 import { toast } from 'sonner';
-import { StatsGrid } from '@/components/common/StatsGrid';
 import { PageHeader } from '@/components/common/PageHeader';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export function StudentsList() {
     const [students, setStudents] = useState([]);
@@ -17,52 +19,55 @@ export function StudentsList() {
     const [totalCount, setTotalCount] = useState(0);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    useEffect(() => {
-        getStudents()
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [page, setPage] = useState(1);
+    const pageSize = 20;
+
+    const fetchStudents = useCallback(() => {
+        setLoading(true);
+        setError('');
+        const params = { page, pageSize };
+        if (search.trim()) params.search = search.trim();
+        if (statusFilter) params.status = statusFilter;
+        getStudents(params)
             .then((response) => {
-            const raw = response?.data ?? response ?? [];
-            const data = Array.isArray(raw) ? raw : [];
-            setStudents(data.map((s) => ({
-                ...s,
-                name: s.name || s.user?.name || '',
-                email: s.email || s.user?.email || '',
-                phone: s.phone || s.user?.phone || '',
-                department: typeof s.department === 'object' && s.department !== null ? s.department.name : s.department || '',
-                gender: s.gender || '',
-                status: s.status || '',
-            })));
-            setTotalCount(response?.meta?.total ?? data.length);
-        })
+                const raw = response?.data ?? response ?? [];
+                const data = Array.isArray(raw) ? raw : [];
+                setStudents(data.map((s) => ({
+                    ...s,
+                    name: s.name || s.user?.name || '',
+                    email: s.email || s.user?.email || '',
+                    phone: s.phone || s.user?.phone || '',
+                    department: typeof s.department === 'object' && s.department !== null ? s.department.name : s.department || '',
+                    gender: s.gender || '',
+                    status: s.status || '',
+                })));
+                setTotalCount(response?.meta?.total ?? data.length);
+            })
             .catch(() => setError('Failed to load students.'))
             .finally(() => setLoading(false));
-    }, []);
+    }, [search, statusFilter, page]);
+
+    useEffect(() => { fetchStudents(); }, [fetchStudents]);
+
     const handleDelete = useCallback(async () => {
         if (!deleteTarget) return;
         setDeleting(true);
         try {
             await deleteStudent(deleteTarget.id);
             toast.success('Student deleted successfully.');
-            setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-            setTotalCount((prev) => Math.max(0, prev - 1));
+            fetchStudents();
         } catch (err) {
             toast.error(err.message || 'Failed to delete student.');
         } finally {
             setDeleting(false);
             setDeleteTarget(null);
         }
-    }, [deleteTarget]);
-    const stats = useMemo(() => {
-        const total = students.length;
-        const active = students.filter((s) => s.status === 'ACTIVE').length;
-        const inactive = students.filter((s) => s.status !== 'ACTIVE').length;
-        const departments = new Set(students.map((s) => s.department).filter(Boolean)).size;
-        return [
-            { label: 'Total Students', value: total, icon: Users, color: 'text-emerald-600 dark:text-emerald-400' },
-            { label: 'Active', value: active, icon: UserCheck, color: 'text-sky-600 dark:text-sky-400' },
-            { label: 'Inactive', value: inactive, icon: UserX, color: 'text-amber-600 dark:text-amber-400' },
-            { label: 'Departments', value: departments, icon: Building2, color: 'text-violet-600 dark:text-violet-400' },
-        ];
-    }, [students]);
+    }, [deleteTarget, fetchStudents]);
+
+    const pageCount = Math.ceil(totalCount / pageSize);
+
     return <div className="space-y-6">
       <ConfirmationDialog
         open={Boolean(deleteTarget)}
@@ -75,10 +80,28 @@ export function StudentsList() {
       />
       <PageHeader title="Students" description={`${totalCount} student${totalCount !== 1 ? 's' : ''} registered`} actionLabel="+ Add Student" actionTo="/students/add" loading={loading} />
       {error && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-      <StatsGrid items={stats} loading={loading} />
       <Card>
-        <CardContent className="p-0">
-          {loading ? <TableSkeleton /> : <StudentsDataTable data={students} onDelete={(student) => setDeleteTarget(student)} />}
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative max-w-sm flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+              <Input className="pl-9" placeholder="Search students..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}/>
+            </div>
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+          {loading ? <TableSkeleton /> : <StudentsDataTable data={students} onDelete={setDeleteTarget} />}
+          {!loading && students.length > 0 && (<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount} students</p>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>
+              <span className="text-sm text-muted-foreground">Page {page} of {pageCount || 1}</span>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page >= pageCount}>Next</Button>
+            </div>
+          </div>)}
         </CardContent>
       </Card>
     </div>;

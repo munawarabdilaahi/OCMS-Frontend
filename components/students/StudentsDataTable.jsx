@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
+import { SortButton } from '@/components/ui/data-table';
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -19,12 +20,6 @@ const statusStyles = {
     WITHDRAWN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
     DELETED: 'bg-muted text-muted-foreground',
 };
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 function exportStudents(rows) {
     if (!rows.length) return;
     const headers = ['ID', 'Full Name', 'Email', 'Phone', 'Gender', 'Department', 'Status'];
