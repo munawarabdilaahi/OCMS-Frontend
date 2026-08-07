@@ -3,6 +3,7 @@ import { ArrowUpDown, Download, Landmark, MoreHorizontal, Pencil, Plus, Search, 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { getFaculties, deleteFaculty } from '@/services/faculties.service';
 import { cn } from '@/lib/cn';
+import { SortButton } from '@/components/ui/data-table';
 
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
@@ -21,13 +23,6 @@ const statusStyles = {
     SUSPENDED: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     CLOSED: 'bg-red-500/10 text-red-700 dark:text-red-300',
 };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 function exportFaculties(rows) {
     if (!rows.length) return;
@@ -282,32 +277,30 @@ export function FacultiesList() {
                 searchTimer.current = setTimeout(() => setSearchFilter(e.target.value), 300);
               }}/>
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="CLOSED">Closed</option>
-            </select>
-            <select
-              value={campusFilter}
-              onChange={(e) => setCampusFilter(e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">All Campuses</option>
-              {Object.entries(
-                faculties.reduce((acc, f) => {
-                  if (f.campus_id && f.campus_name) acc[f.campus_id] = f.campus_name;
-                  return acc;
-                }, {})
-              ).map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
-            </select>
+            <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Statuses"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="CLOSED">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={campusFilter || 'all'} onValueChange={(v) => setCampusFilter(v === 'all' ? '' : v)}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Campuses"/></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Campuses</SelectItem>
+                {Object.entries(
+                  faculties.reduce((acc, f) => {
+                    if (f.campus_id && f.campus_name) acc[f.campus_id] = f.campus_name;
+                    return acc;
+                  }, {})
+                ).map(([id, name]) => (
+                  <SelectItem key={id} value={String(id)}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
