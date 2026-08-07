@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getUniversities } from '@/services/universities.service';
 import { createCampus } from '@/services/campus.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -104,10 +105,7 @@ export function AddCampus() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add Campus</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create a new campus record with full enterprise details.</p>
-      </div>
+      <PageHeader title="Add Campus" description="Create a new campus record with full enterprise details." />
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <Card>

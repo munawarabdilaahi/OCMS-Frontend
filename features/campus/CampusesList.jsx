@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { getCampuses, deleteCampus } from '@/services/campus.service';
 import { cn } from '@/lib/cn';
+import { SortButton } from '@/components/ui/data-table';
 
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
@@ -29,13 +30,6 @@ const typeLabels = {
     SATELLITE: 'Satellite',
     OTHER: 'Other',
 };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 function exportCampuses(rows) {
     if (!rows.length) return;

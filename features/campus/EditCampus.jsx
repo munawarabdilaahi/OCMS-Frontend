@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getUniversities } from '@/services/universities.service';
 import { getCampus, updateCampus, getCampusStats } from '@/services/campus.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -156,10 +157,7 @@ export function EditCampus() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Campus</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the campus record and manage settings.</p>
-      </div>
+      <PageHeader title="Edit Campus" description="Update the campus record and manage settings." />
 
       {stats && (
         <div className="grid gap-3 sm:grid-cols-5">
