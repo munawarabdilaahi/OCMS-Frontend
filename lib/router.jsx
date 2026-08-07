@@ -11,7 +11,7 @@ export function NavLink({ to, className, children, ...props }) {
     const pathname = usePathname() || '/';
     const isActive = pathname === to || (to !== '/' && pathname.startsWith(`${to}/`));
     const resolvedClassName = typeof className === 'function' ? className({ isActive }) : className;
-    return (<NextLink href={to || '#'} className={resolvedClassName} {...props}>
+    return (<NextLink href={to || '#'} className={resolvedClassName} aria-current={isActive ? 'page' : undefined} {...props}>
       {children}
     </NextLink>);
 }
