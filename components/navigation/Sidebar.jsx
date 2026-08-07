@@ -50,6 +50,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, onNavigate }) {
                   to={item.href} 
                   onClick={onNavigate} 
                   title={item.title}
+                  aria-label={collapsed ? item.title : undefined}
                   className={({ isActive }) => cn(
                     'flex h-10 items-center gap-3 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground', 
                     collapsed ? 'justify-center px-2' : 'px-3',
