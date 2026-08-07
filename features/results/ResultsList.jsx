@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 import { getExamResults } from '@/services/exams.service';
+import { SortButton } from '@/components/ui/data-table';
 const gradeStyles = {
     A: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     'A-': 'bg-teal-500/10 text-teal-700 dark:text-teal-300',
@@ -23,12 +24,6 @@ const gradeStyles = {
     'C+': 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     C: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
 };
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 function exportResults(rows) {
     if (!rows.length) return;
     const headers = ['Student ID', 'Student Name', 'Course', 'Marks', 'Grade', 'GPA'];
