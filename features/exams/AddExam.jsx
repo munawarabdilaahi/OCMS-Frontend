@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { examStatuses } from '@/features/exams/ExamsList';
 import { createExamSchedule } from '@/services/exams.service';
+import { PageHeader } from '@/components/common/PageHeader';
 const emptyExam = {
     name: '',
     course: '',
@@ -67,10 +68,7 @@ export function AddExam() {
         }
     }
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add Exam</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Schedule a new course exam or assessment.</p>
-      </div>
+      <PageHeader title="Add Exam" description="Schedule a new course exam or assessment." />
 
       <Card>
         <CardHeader>

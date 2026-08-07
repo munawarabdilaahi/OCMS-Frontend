@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { getExamSchedules } from '@/services/exams.service';
+import { SortButton } from '@/components/ui/data-table';
 export const examStatuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 const statusStyles = {
     SCHEDULED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
@@ -20,12 +21,6 @@ const statusStyles = {
     COMPLETED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     CANCELLED: 'bg-destructive/10 text-destructive',
 };
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 function courseLabel(course) {
     return typeof course === 'object' && course !== null ? (course.title || course.code || '') : (course || '');
 }
