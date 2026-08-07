@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { navigationItems } from '@/lib/navigation';
 import { UnauthorizedPage } from '@/features/UnauthorizedPage';
+import { PageLoader } from '@/components/common/PageLoader';
 
 const authRoutes = new Set(['/login', '/forgot-password', '/reset-password']);
 
@@ -31,7 +32,7 @@ export function ProtectedRoute({ children }) {
 
     if (isAuthRoute) return children;
 
-    if (!isHydrated || !isAuthenticated) return null;
+    if (!isHydrated || !isAuthenticated) return <PageLoader />;
 
     const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
     const allowed = isRouteAllowed(pathname, userRole);

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 
 const schema = z.object({
     email: z.string().email('Enter a valid institutional email.'),
@@ -62,8 +63,8 @@ export function Login() {
             </Alert>)}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" placeholder="admin@ocms.edu" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} {...register('email')}/>
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            <Input id="email" type="email" autoComplete="email" placeholder="admin@ocms.edu" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined} {...register('email')}/>
+            <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
@@ -72,8 +73,8 @@ export function Login() {
                 Forgot password?
               </Link>
             </div>
-            <PasswordField id="password" autoComplete="current-password" placeholder="Enter your password" disabled={isSubmitting} invalid={Boolean(errors.password)} registration={register('password')}/>
-            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            <PasswordField id="password" autoComplete="current-password" placeholder="Enter your password" disabled={isSubmitting} invalid={Boolean(errors.password)} registration={register('password')} aria-describedby={errors.password ? fieldErrorId('password') : undefined}/>
+            <FieldError id={fieldErrorId('password')} message={errors.password?.message}/>
           </div>
           <Button className="w-full" type="submit" disabled={isSubmitting}>
             {isSubmitting ? (<>
