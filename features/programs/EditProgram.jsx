@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getDepartments } from '@/services/departments.service';
 import { getProgram, updateProgram } from '@/services/programs.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const programTypes = ['UNDERGRADUATE', 'POSTGRADUATE', 'DIPLOMA', 'CERTIFICATE'];
 
@@ -101,10 +102,7 @@ export function EditProgram() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Program</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the program record.</p>
-      </div>
+      <PageHeader title="Edit Program" description="Update the program record." />
 
       <Card>
         <CardHeader>
