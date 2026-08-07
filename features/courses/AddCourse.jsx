@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { courseSemesters, courseStatuses } from '@/features/courses/CoursesList';
+import { courseSemesters, courseStatuses } from '@/features/courses/course-constants';
 import { getDepartments } from '@/services/departments.service';
 import { createCourse } from '@/services/courses.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -64,10 +65,7 @@ export function AddCourse() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add Course</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create a new course catalog record.</p>
-      </div>
+      <PageHeader title="Add Course" description="Create a new course catalog record." />
 
       <Card>
         <CardHeader>

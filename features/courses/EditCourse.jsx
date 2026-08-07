@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { courseSemesters, courseStatuses } from '@/features/courses/CoursesList';
+import { courseSemesters, courseStatuses } from '@/features/courses/course-constants';
 import { getDepartments } from '@/services/departments.service';
 import { getCourse, updateCourse } from '@/services/courses.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -97,10 +98,7 @@ export function EditCourse() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Course</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the course record.</p>
-      </div>
+      <PageHeader title="Edit Course" description="Update the course record." />
 
       <Card>
         <CardHeader>
