@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { getDepartment, updateDepartment, getDepartmentStats } from '@/services/departments.service';
 import { getFaculties } from '@/services/faculties.service';
 import { LayoutDashboard } from 'lucide-react';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -110,7 +111,7 @@ export function EditDepartment() {
     if (error) return (<div className="space-y-4"><Alert variant="destructive"><AlertTitle>Department not found</AlertTitle><AlertDescription>{error}</AlertDescription></Alert><Button asChild variant="outline"><Link to="/departments">Back to departments</Link></Button></div>);
 
     return (<div className="space-y-6">
-      <div><h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Department</h1><p className="mt-1 text-sm text-muted-foreground">Update the department record.</p></div>
+      <PageHeader title="Edit Department" description="Update the department record." />
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><LayoutDashboard className="size-4"/>Department Stats</CardTitle><CardDescription>Real-time counts for this department.</CardDescription></CardHeader>
         <CardContent><StatsCards id={id}/></CardContent>

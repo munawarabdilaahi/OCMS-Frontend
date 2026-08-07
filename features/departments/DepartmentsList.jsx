@@ -13,15 +13,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getDepartmentsWithMeta as getDepartments, deleteDepartment } from '@/services/departments.service';
+import { SortButton } from '@/components/ui/data-table';
 
 const statusColors = { ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400', INACTIVE: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400', SUSPENDED: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400', CLOSED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 function exportDepartments(allData) {
     if (!allData.length) return;

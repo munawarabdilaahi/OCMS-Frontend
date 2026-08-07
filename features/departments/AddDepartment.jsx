@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createDepartment } from '@/services/departments.service';
 import { getFaculties } from '@/services/faculties.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -57,7 +58,7 @@ export function AddDepartment() {
     }
 
     return (<div className="space-y-6">
-      <div><h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add Department</h1><p className="mt-1 text-sm text-muted-foreground">Create a new academic department record.</p></div>
+      <PageHeader title="Add Department" description="Create a new academic department record." />
       <form className="space-y-6" onSubmit={handleSubmit}>
         <Card>
           <CardHeader><CardTitle>Basic Information</CardTitle><CardDescription>Department name, code, faculty assignment, and status.</CardDescription></CardHeader>
