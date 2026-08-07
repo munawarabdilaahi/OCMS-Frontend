@@ -10,19 +10,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/cn';
+import { SortButton } from '@/components/ui/data-table';
 
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     DELETED: 'bg-destructive/10 text-destructive',
 };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 export function TeachersDataTable({ data, onDelete }) {
     const [sorting, setSorting] = useState([]);

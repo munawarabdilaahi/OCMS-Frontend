@@ -12,17 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { teacherDepartments, teacherPositions, teacherStatuses } from '@/features/teachers/teachers-data';
 import { getDepartments } from '@/services/departments.service';
 import { createTeacher, updateTeacher } from '@/services/teachers.service';
-
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 
 function SelectField({ control, name, label, options, disabled, error }) {
+    const errorId = fieldErrorId(name);
     return (<div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={name}>{label}</Label>
       <Controller control={control} name={name} render={({ field }) => (<Select value={field.value} disabled={disabled} onValueChange={field.onChange}>
-            <SelectTrigger aria-invalid={Boolean(error)}>
+            <SelectTrigger id={name} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined}>
               <SelectValue placeholder={`Select ${label.toLowerCase()}`}/>
             </SelectTrigger>
             <SelectContent>
@@ -31,7 +28,7 @@ function SelectField({ control, name, label, options, disabled, error }) {
                 </SelectItem>))}
             </SelectContent>
           </Select>)}/>
-      <FieldError message={error?.message}/>
+      <FieldError id={errorId} message={error?.message}/>
     </div>);
 }
 
@@ -112,44 +109,44 @@ export function TeacherForm({ mode = 'add', defaultValues }) {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} {...register('firstName', { required: 'First name is required.' })}/>
-              <FieldError message={errors.firstName?.message}/>
+              <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} aria-describedby={errors.firstName ? fieldErrorId('firstName') : undefined} {...register('firstName', { required: 'First name is required.' })}/>
+              <FieldError id={fieldErrorId('firstName')} message={errors.firstName?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} {...register('lastName', { required: 'Last name is required.' })}/>
-              <FieldError message={errors.lastName?.message}/>
+              <Input id="lastName" disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? fieldErrorId('lastName') : undefined} {...register('lastName', { required: 'Last name is required.' })}/>
+              <FieldError id={fieldErrorId('lastName')} message={errors.lastName?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} {...register('email', { required: 'Email is required.' })}/>
-              <FieldError message={errors.email?.message}/>
+              <Input id="email" type="email" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined} {...register('email', { required: 'Email is required.' })}/>
+              <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} {...register('phone', { required: 'Phone is required.' })}/>
-              <FieldError message={errors.phone?.message}/>
+              <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? fieldErrorId('phone') : undefined} {...register('phone', { required: 'Phone is required.' })}/>
+              <FieldError id={fieldErrorId('phone')} message={errors.phone?.message}/>
             </div>
             <SelectField control={control} name="gender" label="Gender" options={['Male', 'Female', 'Other']} disabled={isSubmitting} error={errors.gender}/>
             <SelectField control={control} name="department" label="Department" options={departments} disabled={isSubmitting} error={errors.department}/>
             <SelectField control={control} name="position" label="Position" options={teacherPositions} disabled={isSubmitting} error={errors.position}/>
             <div className="space-y-2">
               <Label htmlFor="qualification">Qualification</Label>
-              <Input id="qualification" disabled={isSubmitting} aria-invalid={Boolean(errors.qualification)} {...register('qualification', { required: 'Qualification is required.' })}/>
-              <FieldError message={errors.qualification?.message}/>
+              <Input id="qualification" disabled={isSubmitting} aria-invalid={Boolean(errors.qualification)} aria-describedby={errors.qualification ? fieldErrorId('qualification') : undefined} {...register('qualification', { required: 'Qualification is required.' })}/>
+              <FieldError id={fieldErrorId('qualification')} message={errors.qualification?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="employmentDate">Employment Date</Label>
-              <Input id="employmentDate" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.employmentDate)} {...register('employmentDate')}/>
-              <FieldError message={errors.employmentDate?.message}/>
+              <Input id="employmentDate" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.employmentDate)} aria-describedby={errors.employmentDate ? fieldErrorId('employmentDate') : undefined} {...register('employmentDate')}/>
+              <FieldError id={fieldErrorId('employmentDate')} message={errors.employmentDate?.message}/>
             </div>
             <SelectField control={control} name="status" label="Status" options={teacherStatuses} disabled={isSubmitting} error={errors.status}/>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Textarea id="address" disabled={isSubmitting} aria-invalid={Boolean(errors.address)} {...register('address')}/>
-            <FieldError message={errors.address?.message}/>
+            <Textarea id="address" disabled={isSubmitting} aria-invalid={Boolean(errors.address)} aria-describedby={errors.address ? fieldErrorId('address') : undefined} {...register('address')}/>
+            <FieldError id={fieldErrorId('address')} message={errors.address?.message}/>
           </div>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
