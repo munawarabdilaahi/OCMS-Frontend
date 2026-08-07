@@ -12,8 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-import { formatCurrency, formatDate, paymentStatuses } from '@/features/payments/PaymentsList';
+import { formatCurrency, formatDate, paymentStatuses } from '@/features/payments/payment-constants';
 import { getInvoices, getInvoiceStats } from '@/services/payments.service';
+import { SortButton } from '@/components/ui/data-table';
+import { PageHeader } from '@/components/common/PageHeader';
 
 const invoiceStatuses = ['PENDING', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED'];
 const statusStyles = {
@@ -24,12 +26,6 @@ const statusStyles = {
     CANCELLED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
     REFUNDED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
 };
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 function exportInvoices(rows) {
     if (!rows.length) return;
     const headers = ['Invoice Number', 'Student', 'Fee', 'Amount', 'Paid', 'Balance', 'Status', 'Due Date'];
@@ -158,12 +154,7 @@ export function InvoicesList() {
               Back to payments
             </Link>
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Invoices</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Review issued invoices, outstanding balances, and student billing status.
-            </p>
-          </div>
+          <PageHeader title="Invoices" description="Review issued invoices, outstanding balances, and student billing status." />
         </div>
       </div>
 

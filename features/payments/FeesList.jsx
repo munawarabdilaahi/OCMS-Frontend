@@ -15,20 +15,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-import { formatCurrency } from '@/features/payments/PaymentsList';
+import { formatCurrency } from '@/features/payments/payment-constants';
 import { getFees, createFee, updateFee, deleteFee } from '@/services/payments.service';
 import { getDepartments } from '@/services/departments.service';
+import { SortButton } from '@/components/ui/data-table';
 
 const statusStyles = {
     ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     INACTIVE: 'bg-muted text-muted-foreground',
 };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}<ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 const emptyForm = { name: '', description: '', amount: '', department_id: '', academic_year: '', semester: '', status: 'ACTIVE' };
 

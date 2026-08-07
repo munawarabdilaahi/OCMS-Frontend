@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-import { formatCurrency, formatDate } from '@/features/payments/PaymentsList';
+import { formatCurrency, formatDate } from '@/features/payments/payment-constants';
 import { getInvoiceByNumber } from '@/services/payments.service';
 
 const statusStyles = {
