@@ -13,19 +13,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 import { getAttendance, getAttendanceStats } from '@/services/attendance.service';
+import { SortButton } from '@/components/ui/data-table';
 
 const statusStyles = {
     PRESENT: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
     ABSENT: 'bg-destructive/10 text-destructive',
     LATE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
 };
-
-function SortButton({ column, children }) {
-    return (<Button type="button" variant="ghost" className="-ml-3 h-8 px-2" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-      {children}
-      <ArrowUpDown className="ml-1 size-3.5"/>
-    </Button>);
-}
 
 function exportAttendance(rows) {
     if (!rows.length) return;
