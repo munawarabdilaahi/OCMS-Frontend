@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPrograms } from '@/services/programs.service';
 import { getLevel, updateLevel } from '@/services/levels.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -95,10 +96,7 @@ export function EditLevel() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Level</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the level record.</p>
-      </div>
+      <PageHeader title="Edit Level" description="Update the level record." />
 
       <Card>
         <CardHeader>
