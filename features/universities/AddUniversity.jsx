@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createUniversity } from '@/services/universities.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -62,10 +63,7 @@ export function AddUniversity() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add University</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create a new university record with full enterprise details.</p>
-      </div>
+      <PageHeader title="Add University" description="Create a new university record with full enterprise details." />
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <Card>
