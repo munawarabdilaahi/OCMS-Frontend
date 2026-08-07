@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getAcademicYears } from '@/services/academic-years.service';
 import { createSemester } from '@/services/semesters.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -63,10 +64,7 @@ export function AddSemester() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Add Semester</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create a new semester record.</p>
-      </div>
+      <PageHeader title="Add Semester" description="Create a new semester record." />
 
       <Card>
         <CardHeader>

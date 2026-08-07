@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getAcademicYears } from '@/services/academic-years.service';
 import { getSemester, updateSemester } from '@/services/semesters.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -96,10 +97,7 @@ export function EditSemester() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Semester</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the semester record.</p>
-      </div>
+      <PageHeader title="Edit Semester" description="Update the semester record." />
 
       <Card>
         <CardHeader>
