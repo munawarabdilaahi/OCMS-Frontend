@@ -51,9 +51,9 @@ describe('auth.service', () => {
     describe('logoutRequest', () => {
         it('returns data on logout', async () => {
             api.post.mockResolvedValue({ data: { data: null } });
-            const result = await logoutRequest('refresh-token');
+            const result = await logoutRequest();
             expect(result).toBeNull();
-            expect(api.post).toHaveBeenCalledWith('/auth/logout', { refreshToken: 'refresh-token' });
+            expect(api.post).toHaveBeenCalledWith('/auth/logout');
         });
     });
 });
