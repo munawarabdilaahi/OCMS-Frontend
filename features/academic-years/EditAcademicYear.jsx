@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getAcademicYear, updateAcademicYear } from '@/services/academic-years.service';
+import { PageHeader } from '@/components/common/PageHeader';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -81,10 +82,7 @@ export function EditAcademicYear() {
     }
 
     return (<div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Edit Academic Year</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Update the academic year record.</p>
-      </div>
+      <PageHeader title="Edit Academic Year" description="Update the academic year record." />
 
       <Card>
         <CardHeader>
