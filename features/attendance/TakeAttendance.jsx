@@ -18,7 +18,7 @@ import { RequiredIndicator } from '@/components/ui/required-indicator';
 
 function TakeAttendance() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { can } = useAuth();
     const [courses, setCourses] = useState([]);
     const [students, setStudents] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
@@ -29,7 +29,7 @@ function TakeAttendance() {
     const [loading, setLoading] = useState(true);
     const [loadingStudents, setLoadingStudents] = useState(false);
 
-    const isStudent = user?.role === 'Student';
+    const canManageAttendance = can('attendance:manage');
 
     useEffect(() => {
         getCourses()
@@ -94,7 +94,7 @@ function TakeAttendance() {
         }
     }
 
-    if (isStudent) {
+    if (!canManageAttendance) {
         return (
             <div className="space-y-6">
                 <div>
@@ -103,7 +103,7 @@ function TakeAttendance() {
                 </div>
                 <Alert>
                     <AlertTitle>Not available</AlertTitle>
-                    <AlertDescription>Attendance management is not available for student accounts. Contact your instructor to record attendance.</AlertDescription>
+                    <AlertDescription>Attendance management is not available for your account. Contact your instructor to record attendance.</AlertDescription>
                 </Alert>
                 <div className="flex justify-start">
                     <Button asChild variant="outline">

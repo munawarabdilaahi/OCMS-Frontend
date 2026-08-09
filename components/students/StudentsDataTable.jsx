@@ -38,7 +38,7 @@ function exportStudents(rows) {
     anchor.click();
     URL.revokeObjectURL(url);
 }
-export function StudentsDataTable({ data, onDelete }) {
+export function StudentsDataTable({ data, onDelete, canManage = true }) {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
@@ -90,20 +90,22 @@ export function StudentsDataTable({ data, onDelete }) {
                   View
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={`/students/${row.original.id}/edit`}>
-                  <Pencil />
-                  Edit
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original)}>
-                <Trash2 />
-                Delete
-              </DropdownMenuItem>
+              {canManage && (<>
+                <DropdownMenuItem asChild>
+                  <Link to={`/students/${row.original.id}/edit`}>
+                    <Pencil />
+                    Edit
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original)}>
+                  <Trash2 />
+                  Delete
+                </DropdownMenuItem>
+              </>)}
             </DropdownMenuContent>
           </DropdownMenu>),
         },
-    ], [onDelete]);
+    ], [canManage, onDelete]);
     const table = useReactTable({
         data,
         columns,
@@ -171,7 +173,7 @@ export function StudentsDataTable({ data, onDelete }) {
                   {row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}
                 </TableRow>))) : (<TableRow>
                 <TableCell colSpan={columns.length} className="p-6">
-                  <EmptyState title="No students found" description="Adjust your filters or add a new student record." actionLabel="Add Student" actionTo="/students/add"/>
+                  <EmptyState title="No students found" description="Adjust your filters or add a new student record." actionLabel={canManage ? 'Add Student' : undefined} actionTo={canManage ? '/students/add' : undefined}/>
                 </TableCell>
               </TableRow>)}
           </TableBody>

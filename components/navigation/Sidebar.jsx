@@ -8,12 +8,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { navigationItems } from '@/lib/navigation';
 
 export function Sidebar({ collapsed = false, onToggleCollapse, onNavigate }) {
-    const { user } = useAuth();
+    const { user, canAny } = useAuth();
 
     const userRole = typeof user?.role === 'object' ? user?.role?.name : user?.role;
 
     const items = (navigationItems || []).filter(
-      (item) => !item.roles || item.roles.length === 0 || item.roles.includes(userRole),
+      (item) =>
+        (!item.roles || item.roles.length === 0 || item.roles.includes(userRole)) &&
+        (!item.permissions || item.permissions.length === 0 || canAny(item.permissions)),
     );
 
     return (

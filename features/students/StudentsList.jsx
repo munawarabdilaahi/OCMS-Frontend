@@ -11,8 +11,10 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
 
 export function StudentsList() {
+    const { can } = useAuth();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -78,7 +80,7 @@ export function StudentsList() {
         loading={deleting}
         onConfirm={handleDelete}
       />
-      <PageHeader title="Students" description={`${totalCount} student${totalCount !== 1 ? 's' : ''} registered`} actionLabel="+ Add Student" actionTo="/students/add" loading={loading} />
+      <PageHeader title="Students" description={`${totalCount} student${totalCount !== 1 ? 's' : ''} registered`} actionLabel={can('students:manage') ? '+ Add Student' : undefined} actionTo={can('students:manage') ? '/students/add' : undefined} loading={loading} />
       {error && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       <Card>
         <CardContent className="space-y-4">
@@ -93,7 +95,7 @@ export function StudentsList() {
               <option value="INACTIVE">Inactive</option>
             </select>
           </div>
-          {loading ? <TableSkeleton /> : <StudentsDataTable data={students} onDelete={setDeleteTarget} />}
+          {loading ? <TableSkeleton /> : <StudentsDataTable data={students} canManage={can('students:manage')} onDelete={setDeleteTarget} />}
           {!loading && students.length > 0 && (<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount} students</p>
             <div className="flex items-center gap-2">

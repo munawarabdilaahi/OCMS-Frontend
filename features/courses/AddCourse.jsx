@@ -10,6 +10,8 @@ import { courseSemesters, courseStatuses } from '@/features/courses/course-const
 import { getDepartments } from '@/services/departments.service';
 import { createCourse } from '@/services/courses.service';
 import { PageHeader } from '@/components/common/PageHeader';
+import { UnauthorizedPage } from '@/features/UnauthorizedPage';
+import { useAuth } from '@/hooks/useAuth';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -18,6 +20,7 @@ function FieldError({ message }) {
 
 export function AddCourse() {
     const navigate = useNavigate();
+    const { can } = useAuth();
     const [code, setCode] = useState('');
     const [title, setTitle] = useState('');
     const [creditHours, setCreditHours] = useState('');
@@ -62,6 +65,10 @@ export function AddCourse() {
             toast.error(err.message || 'Failed to create course.');
             setIsSubmitting(false);
         }
+    }
+
+    if (!can('courses:manage')) {
+        return <UnauthorizedPage />;
     }
 
     return (<div className="space-y-6">

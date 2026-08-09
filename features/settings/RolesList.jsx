@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getRoles, createRole, updateRole, deleteRole } from '@/services/roles.service';
+import { useAuth } from '@/hooks/useAuth';
 
 const PERMISSION_LABELS = {
     'dashboard:view': 'View Dashboard',
     'students:manage': 'Manage Students',
+    'students:view': 'View Students',
     'courses:manage': 'Manage Courses',
     'courses:view': 'View Courses',
     'attendance:manage': 'Manage Attendance',
@@ -26,6 +28,8 @@ const PERMISSION_LABELS = {
 };
 
 export function RolesList() {
+    const { can } = useAuth();
+    const canManage = can('settings:manage');
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -110,7 +114,7 @@ export function RolesList() {
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Roles & Permissions</h1>
           <p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${roles.length} role${roles.length !== 1 ? 's' : ''} configured`}</p>
         </div>
-        <Button onClick={openCreateDialog}><Plus /> Add Role</Button>
+        <Button onClick={openCreateDialog} disabled={!canManage}><Plus /> Add Role</Button>
       </div>
 
       {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
@@ -125,7 +129,7 @@ export function RolesList() {
                   <ShieldCheck className="size-5 text-primary"/>
                   <CardTitle className="text-lg">{role.name}</CardTitle>
                 </div>
-                {!isBuiltin && (
+                {!isBuiltin && canManage && (
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(role)}>
                       <Pencil className="size-4"/>

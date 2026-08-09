@@ -22,6 +22,7 @@ import { getUsers, createUser, updateUser, deleteUser } from '@/services/users.s
 import { getRoles } from '@/services/roles.service';
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
+import { useAuth } from '@/hooks/useAuth';
 
 const createUserSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
@@ -46,6 +47,8 @@ const statusStyles = {
 };
 
 export function UsersList() {
+    const { can } = useAuth();
+    const canManage = can('settings:manage');
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -140,8 +143,8 @@ export function UsersList() {
         { accessorKey: 'email', header: ({ column }) => <SortButton column={column}>Email</SortButton> },
         { accessorKey: 'role', header: ({ column }) => <SortButton column={column}>Role</SortButton>, cell: ({ row }) => <Badge variant="secondary">{row.original.role || '-'}</Badge> },
         { accessorKey: 'status', header: 'Status', cell: ({ row }) => <Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge> },
-        { id: 'actions', header: 'Actions', enableHiding: false, cell: ({ row }) => (<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => openEdit(row.original)}>Edit</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget(row.original)}>Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu>) },
-    ], []);
+        { id: 'actions', header: 'Actions', enableHiding: false, cell: ({ row }) => (<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{canManage && (<><DropdownMenuItem onSelect={() => openEdit(row.original)}>Edit</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget(row.original)}>Delete</DropdownMenuItem></>)}</DropdownMenuContent></DropdownMenu>) },
+    ], [canManage]);
 
     const table = useReactTable({ data: users, columns, state: { sorting }, onSortingChange: setSorting, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel() });
     const pageCount = Math.ceil(totalCount / pageSize);
@@ -153,7 +156,7 @@ export function UsersList() {
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Users</h1>
           <p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${totalCount} user${totalCount !== 1 ? 's' : ''}`}</p>
         </div>
-        <Button onClick={openCreate}><Plus /> Add User</Button>
+        <Button onClick={openCreate} disabled={!canManage}><Plus /> Add User</Button>
       </div>
       {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
       <Card>

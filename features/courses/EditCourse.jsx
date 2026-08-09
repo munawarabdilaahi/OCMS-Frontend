@@ -11,6 +11,8 @@ import { courseSemesters, courseStatuses } from '@/features/courses/course-const
 import { getDepartments } from '@/services/departments.service';
 import { getCourse, updateCourse } from '@/services/courses.service';
 import { PageHeader } from '@/components/common/PageHeader';
+import { UnauthorizedPage } from '@/features/UnauthorizedPage';
+import { useAuth } from '@/hooks/useAuth';
 
 function FieldError({ message }) {
     if (!message) return null;
@@ -20,6 +22,7 @@ function FieldError({ message }) {
 export function EditCourse() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { can } = useAuth();
     const [code, setCode] = useState('');
     const [title, setTitle] = useState('');
     const [creditHours, setCreditHours] = useState('');
@@ -84,6 +87,9 @@ export function EditCourse() {
 
     if (loading) {
         return <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading course...</p></div>;
+    }
+    if (!can('courses:manage')) {
+        return <UnauthorizedPage />;
     }
     if (error) {
         return (<div className="space-y-4">

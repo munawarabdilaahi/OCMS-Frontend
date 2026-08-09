@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthContext } from '@/context/auth-context';
-import { hasAnyPermission, hasPermission } from '@/lib/roles';
+import { hasAnyPermission, hasPermission, resolvePermissions } from '@/lib/roles';
 import { loginRequest, getMeRequest, logoutRequest } from '@/services/auth.service';
 
 const STORAGE_KEY = 'ocms_user';
@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
                         name: freshUser.name || '',
                         email: freshUser.email || '',
                         role: freshUser.role?.name || '',
+                        permissions: resolvePermissions(freshUser.role?.name || '', freshUser.role?.permissions),
                         studentId: freshUser.student?.id,
                         teacherId: freshUser.teacher?.id,
                         status: freshUser.status || 'ACTIVE',
@@ -52,6 +53,7 @@ export function AuthProvider({ children }) {
             name: apiUser.name || '',
             email: apiUser.email || '',
             role: apiUser.role.name,
+            permissions: resolvePermissions(apiUser.role.name, apiUser.role.permissions),
             studentId: apiUser.student?.id,
             teacherId: apiUser.teacher?.id,
             status: apiUser.status || 'ACTIVE',
@@ -81,8 +83,8 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(user),
         isHydrated: hydrated,
         hasRole: (roles = []) => roles.includes(user?.role),
-        can: (permission) => hasPermission(user?.role, permission),
-        canAny: (permissions = []) => hasAnyPermission(user?.role, permissions),
+        can: (permission) => (user ? hasPermission(user.permissions, permission) : false),
+        canAny: (permissions = []) => (user ? hasAnyPermission(user.permissions, permissions) : false),
         login,
         logout,
         updateUser,

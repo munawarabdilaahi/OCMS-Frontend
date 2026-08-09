@@ -4,8 +4,11 @@ import { StudentForm } from '@/components/students/StudentForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { getStudent } from '@/services/students.service';
+import { UnauthorizedPage } from '@/features/UnauthorizedPage';
+import { useAuth } from '@/hooks/useAuth';
 export function EditStudent() {
     const { studentId } = useParams();
+    const { can } = useAuth();
     const [student, setStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -34,6 +37,9 @@ export function EditStudent() {
             .catch(() => setError('Failed to load student.'))
             .finally(() => setLoading(false));
     }, [studentId]);
+    if (!can('students:manage')) {
+        return <UnauthorizedPage />;
+    }
     if (loading) {
         return <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading student...</p></div>;
     }

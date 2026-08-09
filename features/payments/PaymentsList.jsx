@@ -28,8 +28,9 @@ const statusStyles = {
 };
 
 export function PaymentsList() {
-    const { user } = useAuth();
+    const { user, can } = useAuth();
     const isStudent = user?.role === ROLES.STUDENT;
+    const canManage = can('payments:manage');
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -78,7 +79,7 @@ export function PaymentsList() {
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">{isStudent ? 'My Payments' : 'Payments & Finance'}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{isStudent ? 'Review your own invoices, balances, and payment status.' : 'Track revenue, invoice status, payment methods, and collection performance.'}</p>
         </div>
-        {!isStudent && (<Button asChild><Link to="/payments/invoices"><FileText />Manage Invoices</Link></Button>)}
+        {canManage && (<Button asChild><Link to="/payments/invoices"><FileText />Manage Invoices</Link></Button>)}
       </div>
       {!isStudent && (<div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-base">Total Received</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{formatCurrency(stats.total_received)}</p></CardContent></Card>
@@ -113,7 +114,7 @@ export function PaymentsList() {
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>
-                <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No payments found" description="Payments will appear once invoices are created and processed." actionLabel={isStudent ? undefined : 'Open Invoices'} actionTo={isStudent ? undefined : '/payments/invoices'}/></TableCell></TableRow>)}</TableBody>
+                <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No payments found" description="Payments will appear once invoices are created and processed." actionLabel={canManage ? 'Open Invoices' : undefined} actionTo={canManage ? '/payments/invoices' : undefined}/></TableCell></TableRow>)}</TableBody>
               </Table>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

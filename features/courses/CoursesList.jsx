@@ -24,8 +24,9 @@ const statusStyles = {
 };
 
 export function CoursesList() {
-    const { user } = useAuth();
+    const { user, can } = useAuth();
     const isStudent = user?.role === ROLES.STUDENT;
+    const canManage = can('courses:manage');
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -78,8 +79,8 @@ export function CoursesList() {
         { accessorKey: 'department', header: ({ column }) => <SortButton column={column}>Department</SortButton> },
         { accessorKey: 'teacher', header: ({ column }) => <SortButton column={column}>Teacher</SortButton>, cell: ({ row }) => row.original.teacher || '-' },
         { accessorKey: 'status', header: 'Status', cell: ({ row }) => <Badge className={cn('whitespace-nowrap', statusStyles[row.original.status] || '')}>{row.original.status}</Badge> },
-        { id: 'actions', header: 'Actions', enableHiding: false, cell: ({ row }) => (<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal /><span className="sr-only">Open row actions</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to={`/courses/${row.original.id}/edit`}><Pencil />Edit</Link></DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget({ id: row.original.id, title: row.original.title })}><Trash2 />Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu>) },
-    ], []);
+        { id: 'actions', header: 'Actions', enableHiding: false, cell: ({ row }) => (<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal /><span className="sr-only">Open row actions</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end">{canManage && (<><DropdownMenuItem asChild><Link to={`/courses/${row.original.id}/edit`}><Pencil />Edit</Link></DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => setDeleteTarget({ id: row.original.id, title: row.original.title })}><Trash2 />Delete</DropdownMenuItem></>)}</DropdownMenuContent></DropdownMenu>) },
+    ], [canManage]);
 
     const table = useReactTable({ data: courses, columns, state: { sorting }, onSortingChange: setSorting, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel() });
     const pageCount = Math.ceil(totalCount / pageSize);
@@ -115,7 +116,7 @@ export function CoursesList() {
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>
-                <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No courses found" description="Create a course to get started." actionLabel="Add Course" actionTo="/courses/add"/></TableCell></TableRow>)}</TableBody>
+                <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No courses found" description="Create a course to get started." actionLabel={canManage ? 'Add Course' : undefined} actionTo={canManage ? '/courses/add' : undefined}/></TableCell></TableRow>)}</TableBody>
               </Table>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
