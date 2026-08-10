@@ -72,7 +72,6 @@ export function TeacherForm({ mode = 'add', defaultValues }) {
             const payload = {
                 name: `${values.firstName} ${values.lastName}`.trim(),
                 email: values.email,
-                password: isEdit ? undefined : 'Campus123',
                 phone: values.phone,
                 department_id: dept?.id || undefined,
                 gender: values.gender,

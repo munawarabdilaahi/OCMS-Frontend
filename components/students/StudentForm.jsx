@@ -64,7 +64,7 @@ export function StudentForm({ mode = 'add', defaultValues = emptyStudentValues }
                 navigate(`/students/${values.id}`);
             }
             else {
-                const created = await createStudent({ ...payload, password: 'campus123' });
+                const created = await createStudent(payload);
                 toast.success('Student record created.');
                 navigate(`/students/${created?.id}`);
             }
