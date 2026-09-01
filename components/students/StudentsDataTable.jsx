@@ -1,25 +1,17 @@
 /* eslint-disable react-hooks/incompatible-library */
 import { flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { Eye, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    SUSPENDED: 'bg-destructive/10 text-destructive',
-    GRADUATED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    WITHDRAWN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
-    DELETED: 'bg-muted text-muted-foreground',
-};
+import { STUDENT_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 function exportStudents(rows) {
     if (!rows.length) return;
     const headers = ['ID', 'Full Name', 'Email', 'Phone', 'Gender', 'Department', 'Status'];
@@ -40,7 +32,6 @@ function exportStudents(rows) {
 }
 export function StudentsDataTable({ data, onDelete, canManage = true }) {
     const [sorting, setSorting] = useState([]);
-    const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState([]);
     const columns = useMemo(() => [
         {
@@ -111,11 +102,9 @@ export function StudentsDataTable({ data, onDelete, canManage = true }) {
         columns,
         state: {
             sorting,
-            globalFilter,
             columnFilters,
         },
         onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -123,10 +112,6 @@ export function StudentsDataTable({ data, onDelete, canManage = true }) {
     });
     return (<div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
-          <Input className="pl-9" placeholder="Search students..." value={globalFilter ?? ''} onChange={(event) => setGlobalFilter(event.target.value)}/>
-        </div>
         <div className="flex gap-2">
           <Select value={table.getColumn('department')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('department')?.setFilterValue(value === 'all' ? undefined : value)}>
             <SelectTrigger className="w-[160px]">

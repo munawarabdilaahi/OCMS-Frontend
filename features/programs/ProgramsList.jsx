@@ -3,9 +3,10 @@ import { ArrowUpDown, BookOpen, Download, MoreHorizontal, Pencil, Plus, Search, 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,12 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '
 import { getPrograms, deleteProgram } from '@/services/programs.service';
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
-
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-muted text-muted-foreground',
-};
-
+import { ORG_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 function exportPrograms(rows) {
     if (!rows.length) return;
     const headers = ['Code', 'Name', 'Department', 'Duration (Years)', 'Type', 'Status'];
@@ -235,10 +231,7 @@ export function ProgramsList() {
         </span>
       </div>
 
-      {error && (<Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>)}
+      <ErrorAlert message={error} onRetry={fetchPrograms} />
 
       <Card>
         <CardHeader>
@@ -247,9 +240,7 @@ export function ProgramsList() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <p className="text-muted-foreground">Loading programs...</p>
-            </div>
+            <TableSkeleton />
           ) : (
             <ProgramsDataTable data={programs} onDelete={handleDelete}/>
           )}

@@ -3,8 +3,9 @@ import { ArrowUpDown, BookOpen, Download, MoreHorizontal, Pencil, Plus, Search, 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,10 +19,7 @@ import { ROLES } from '@/lib/roles';
 import { getCourses, deleteCourse } from '@/services/courses.service';
 import { SortButton } from '@/components/ui/data-table';
 
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-muted text-muted-foreground',
-};
+import { COURSE_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 
 export function CoursesList() {
     const { user, can } = useAuth();
@@ -94,7 +92,7 @@ export function CoursesList() {
         </div>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><BookOpen className="size-5"/></span>
       </div>
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchCourses} />
       <Card>
         <CardHeader>
           <CardTitle>{isStudent ? 'My Course Directory' : 'Course Directory'}</CardTitle>
@@ -112,7 +110,7 @@ export function CoursesList() {
               <option value="INACTIVE">Inactive</option>
             </select>
           </div>
-          {loading ? (<div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading courses...</p></div>) : (<div className="space-y-4">
+          {loading ? (<TableSkeleton />) : (<div className="space-y-4">
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>

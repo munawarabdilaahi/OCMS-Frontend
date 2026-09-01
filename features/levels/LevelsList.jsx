@@ -3,9 +3,10 @@ import { ArrowUpDown, Download, Layers, MoreHorizontal, Pencil, Plus, Search, Tr
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,12 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '
 import { getLevels, deleteLevel } from '@/services/levels.service';
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
-
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-muted text-muted-foreground',
-};
-
+import { ORG_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 function exportLevels(rows) {
     if (!rows.length) return;
     const headers = ['Code', 'Name', 'Program', 'Sort Order', 'Status'];
@@ -230,10 +226,7 @@ export function LevelsList() {
         </span>
       </div>
 
-      {error && (<Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>)}
+      <ErrorAlert message={error} onRetry={fetchLevels} />
 
       <Card>
         <CardHeader>
@@ -242,9 +235,7 @@ export function LevelsList() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <p className="text-muted-foreground">Loading levels...</p>
-            </div>
+            <TableSkeleton />
           ) : (
             <LevelsDataTable data={levels} onDelete={handleDelete}/>
           )}

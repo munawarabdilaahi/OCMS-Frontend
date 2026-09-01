@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from '@/lib/router';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,11 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getUniversities } from '@/services/universities.service';
 import { getCampus, updateCampus, getCampusStats } from '@/services/campus.service';
 import { PageHeader } from '@/components/common/PageHeader';
-
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
+import { editCampusSchema, emptyCampusValues } from './campus-schema.js';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 
 function StatsCard({ label, value }) {
     return (
@@ -29,25 +28,14 @@ function StatsCard({ label, value }) {
 export function EditCampus() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [form, setForm] = useState({
-        name: '', code: '', type: 'MAIN', established_date: '',
-        address: '', phone: '', email: '', website: '',
-        timezone: '', locale: '', currency: '',
-        campus_director: '', director_email: '', director_phone: '',
-        max_capacity: '', accreditation_body: '', accreditation_status: '', accreditation_expiry: '',
-        operating_hours: '', emergency_contact: '', emergency_phone: '',
-        campus_size: '', buildings_count: '', virtual_campus_url: '',
-        parking_capacity: '', library_hours: '', cafeteria_count: '',
-        medical_facilities: '', security_details: '',
-        facilities: '', transport_routes: '', sports_facilities: '',
-        university_id: '', status: 'ACTIVE',
-    });
     const [universities, setUniversities] = useState([]);
     const [stats, setStats] = useState(null);
-    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(editCampusSchema),
+        defaultValues: emptyCampusValues,
+    });
 
     useEffect(() => {
         getUniversities()
@@ -63,10 +51,10 @@ export function EditCampus() {
         ])
             .then(([data, statsData]) => {
                 if (!data) { setError('Campus not found.'); return; }
-                setForm({
+                reset({
                     name: data.name || '',
                     code: data.code || '',
-                    type: data.type || 'MAIN',
+                    campus_type: data.campus_type || '',
                     established_date: data.established_date ? data.established_date.split('T')[0] : '',
                     address: data.address || '',
                     phone: data.phone || '',
@@ -103,32 +91,12 @@ export function EditCampus() {
             })
             .catch(() => setError('Failed to load campus.'))
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [id, reset]);
 
-    function set(field, value) {
-        setForm((p) => ({ ...p, [field]: value }));
-        setErrors((p) => ({ ...p, [field]: undefined }));
-    }
-
-    function validate() {
-        const errs = {};
-        if (!form.name.trim()) errs.name = 'Campus name is required.';
-        if (!form.university_id) errs.university_id = 'University is required.';
-        if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email format.';
-        if (form.website && !/^https?:\/\/.+/.test(form.website)) errs.website = 'Website must start with http:// or https://.';
-        if (form.director_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.director_email)) errs.director_email = 'Invalid email format.';
-        if (form.virtual_campus_url && !/^https?:\/\/.+/.test(form.virtual_campus_url)) errs.virtual_campus_url = 'URL must start with http:// or https://.';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-        if (!validate()) return;
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
-            const payload = { university_id: Number(form.university_id) };
-            for (const [key, value] of Object.entries(form)) {
+            const payload = { university_id: Number(values.university_id) };
+            for (const [key, value] of Object.entries(values)) {
                 if (key === 'university_id') continue;
                 if (value !== '' && value !== undefined) payload[key] = value;
             }
@@ -137,7 +105,6 @@ export function EditCampus() {
             navigate('/campus');
         } catch (err) {
             toast.error(err.message || 'Failed to update campus.');
-            setIsSubmitting(false);
         }
     }
 
@@ -169,22 +136,23 @@ export function EditCampus() {
         </div>
       )}
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader><CardTitle>Basic Information</CardTitle><CardDescription>Campus identity and classification.</CardDescription></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Campus Name *</Label>
-              <Input id="name" placeholder="e.g. Main Campus" value={form.name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(e) => set('name', e.target.value)}/>
-              <FieldError message={errors.name}/>
+              <Input id="name" placeholder="e.g. Main Campus" {...register('name')} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('name') : undefined}/>
+              <FieldError id={fieldErrorId('name')} message={errors.name?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="code">Code</Label>
-              <Input id="code" placeholder="e.g. MAIN" value={form.code} disabled={isSubmitting} onChange={(e) => set('code', e.target.value.toUpperCase())}/>
+              <Input id="code" placeholder="e.g. MAIN" {...register('code')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="type">Type</Label>
-              <select id="type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.type} disabled={isSubmitting} onChange={(e) => set('type', e.target.value)}>
+              <Label htmlFor="campus_type">Type</Label>
+              <select id="campus_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" {...register('campus_type')} disabled={isSubmitting}>
+                <option value="">Select Type</option>
                 <option value="MAIN">Main</option>
                 <option value="BRANCH">Branch</option>
                 <option value="VIRTUAL">Virtual</option>
@@ -194,11 +162,11 @@ export function EditCampus() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="established_date">Established Date</Label>
-              <Input id="established_date" type="date" value={form.established_date} disabled={isSubmitting} onChange={(e) => set('established_date', e.target.value)}/>
+              <Input id="established_date" type="date" {...register('established_date')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <select id="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.status} disabled={isSubmitting} onChange={(e) => set('status', e.target.value)}>
+              <select id="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" {...register('status')} disabled={isSubmitting}>
                 <option value="ACTIVE">Active</option>
                 <option value="INACTIVE">Inactive</option>
                 <option value="SUSPENDED">Suspended</option>
@@ -207,13 +175,19 @@ export function EditCampus() {
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>University *</Label>
-              <Select value={form.university_id} disabled={isSubmitting} onValueChange={(v) => set('university_id', v)}>
-                <SelectTrigger aria-invalid={Boolean(errors.university_id)}><SelectValue placeholder="Select a university..."/></SelectTrigger>
-                <SelectContent>
-                  {universities.map((u) => (<SelectItem key={u.id} value={String(u.id)}>{u.name} ({u.code})</SelectItem>))}
-                </SelectContent>
-              </Select>
-              <FieldError message={errors.university_id}/>
+              <Controller
+                control={control}
+                name="university_id"
+                render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.university_id)} aria-describedby={errors.university_id ? fieldErrorId('university_id') : undefined}><SelectValue placeholder="Select a university..."/></SelectTrigger>
+                    <SelectContent>
+                      {universities.map((u) => (<SelectItem key={u.id} value={String(u.id)}>{u.name} ({u.code})</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <FieldError id={fieldErrorId('university_id')} message={errors.university_id?.message}/>
             </div>
           </CardContent>
         </Card>
@@ -223,33 +197,33 @@ export function EditCampus() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address">Address</Label>
-              <Input id="address" placeholder="e.g. 456 College St, Boston, MA" value={form.address} disabled={isSubmitting} onChange={(e) => set('address', e.target.value)}/>
+              <Input id="address" placeholder="e.g. 456 College St, Boston, MA" {...register('address')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" placeholder="e.g. +1 617-555-1234" value={form.phone} disabled={isSubmitting} onChange={(e) => set('phone', e.target.value)}/>
+              <Input id="phone" placeholder="e.g. +1 617-555-1234" {...register('phone')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="e.g. campus@university.edu" value={form.email} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} onChange={(e) => set('email', e.target.value)}/>
-              <FieldError message={errors.email}/>
+              <Input id="email" type="email" placeholder="e.g. campus@university.edu" {...register('email')} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined}/>
+              <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
-              <Input id="website" placeholder="e.g. https://campus.university.edu" value={form.website} disabled={isSubmitting} aria-invalid={Boolean(errors.website)} onChange={(e) => set('website', e.target.value)}/>
-              <FieldError message={errors.website}/>
+              <Input id="website" placeholder="e.g. https://campus.university.edu" {...register('website')} disabled={isSubmitting} aria-invalid={Boolean(errors.website)} aria-describedby={errors.website ? fieldErrorId('website') : undefined}/>
+              <FieldError id={fieldErrorId('website')} message={errors.website?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="timezone">Timezone</Label>
-              <Input id="timezone" placeholder="e.g. America/New_York" value={form.timezone} disabled={isSubmitting} onChange={(e) => set('timezone', e.target.value)}/>
+              <Input id="timezone" placeholder="e.g. America/New_York" {...register('timezone')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="locale">Locale</Label>
-              <Input id="locale" placeholder="e.g. en, fr, ar" value={form.locale} disabled={isSubmitting} onChange={(e) => set('locale', e.target.value)}/>
+              <Input id="locale" placeholder="e.g. en, fr, ar" {...register('locale')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
-              <Input id="currency" placeholder="e.g. USD, EUR, GBP" value={form.currency} disabled={isSubmitting} onChange={(e) => set('currency', e.target.value.toUpperCase())}/>
+              <Input id="currency" placeholder="e.g. USD, EUR, GBP" {...register('currency')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -259,16 +233,16 @@ export function EditCampus() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="campus_director">Director Name</Label>
-              <Input id="campus_director" placeholder="e.g. Dr. John Smith" value={form.campus_director} disabled={isSubmitting} onChange={(e) => set('campus_director', e.target.value)}/>
+              <Input id="campus_director" placeholder="e.g. Dr. John Smith" {...register('campus_director')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="director_email">Director Email</Label>
-              <Input id="director_email" type="email" placeholder="e.g. director@campus.edu" value={form.director_email} disabled={isSubmitting} aria-invalid={Boolean(errors.director_email)} onChange={(e) => set('director_email', e.target.value)}/>
-              <FieldError message={errors.director_email}/>
+              <Input id="director_email" type="email" placeholder="e.g. director@campus.edu" {...register('director_email')} disabled={isSubmitting} aria-invalid={Boolean(errors.director_email)} aria-describedby={errors.director_email ? fieldErrorId('director_email') : undefined}/>
+              <FieldError id={fieldErrorId('director_email')} message={errors.director_email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="director_phone">Director Phone</Label>
-              <Input id="director_phone" placeholder="e.g. +1 617-555-5678" value={form.director_phone} disabled={isSubmitting} onChange={(e) => set('director_phone', e.target.value)}/>
+              <Input id="director_phone" placeholder="e.g. +1 617-555-5678" {...register('director_phone')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -278,15 +252,15 @@ export function EditCampus() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="accreditation_body">Accreditation Body</Label>
-              <Input id="accreditation_body" placeholder="e.g. ABET, AACSB" value={form.accreditation_body} disabled={isSubmitting} onChange={(e) => set('accreditation_body', e.target.value)}/>
+              <Input id="accreditation_body" placeholder="e.g. ABET, AACSB" {...register('accreditation_body')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="accreditation_status">Accreditation Status</Label>
-              <Input id="accreditation_status" placeholder="e.g. Accredited, Provisional" value={form.accreditation_status} disabled={isSubmitting} onChange={(e) => set('accreditation_status', e.target.value)}/>
+              <Input id="accreditation_status" placeholder="e.g. Accredited, Provisional" {...register('accreditation_status')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="accreditation_expiry">Accreditation Expiry</Label>
-              <Input id="accreditation_expiry" type="date" value={form.accreditation_expiry} disabled={isSubmitting} onChange={(e) => set('accreditation_expiry', e.target.value)}/>
+              <Input id="accreditation_expiry" type="date" {...register('accreditation_expiry')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -296,28 +270,27 @@ export function EditCampus() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="campus_size">Campus Size (sq meters)</Label>
-              <Input id="campus_size" type="number" min="0" placeholder="e.g. 500000" value={form.campus_size} disabled={isSubmitting} onChange={(e) => set('campus_size', e.target.value)}/>
+              <Input id="campus_size" type="number" min="0" placeholder="e.g. 500000" {...register('campus_size')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="buildings_count">Buildings Count</Label>
-              <Input id="buildings_count" type="number" min="0" placeholder="e.g. 25" value={form.buildings_count} disabled={isSubmitting} onChange={(e) => set('buildings_count', e.target.value)}/>
+              <Input id="buildings_count" type="number" min="0" placeholder="e.g. 25" {...register('buildings_count')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="max_capacity">Max Capacity</Label>
-              <Input id="max_capacity" type="number" min="1" placeholder="e.g. 15000" value={form.max_capacity} disabled={isSubmitting} onChange={(e) => set('max_capacity', e.target.value)}/>
+              <Input id="max_capacity" type="number" min="1" placeholder="e.g. 15000" {...register('max_capacity')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="parking_capacity">Parking Capacity</Label>
-              <Input id="parking_capacity" type="number" min="0" placeholder="e.g. 2000" value={form.parking_capacity} disabled={isSubmitting} onChange={(e) => set('parking_capacity', e.target.value)}/>
+              <Input id="parking_capacity" type="number" min="0" placeholder="e.g. 2000" {...register('parking_capacity')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="cafeteria_count">Cafeterias</Label>
-              <Input id="cafeteria_count" type="number" min="0" placeholder="e.g. 5" value={form.cafeteria_count} disabled={isSubmitting} onChange={(e) => set('cafeteria_count', e.target.value)}/>
+              <Input id="cafeteria_count" type="number" min="0" placeholder="e.g. 5" {...register('cafeteria_count')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="virtual_campus_url">Virtual Campus URL</Label>
-              <Input id="virtual_campus_url" placeholder="https://virtual.university.edu" value={form.virtual_campus_url} disabled={isSubmitting} aria-invalid={Boolean(errors.virtual_campus_url)} onChange={(e) => set('virtual_campus_url', e.target.value)}/>
-              <FieldError message={errors.virtual_campus_url}/>
+              <Input id="virtual_campus_url" placeholder="https://virtual.university.edu" {...register('virtual_campus_url')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -327,27 +300,27 @@ export function EditCampus() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="operating_hours">Operating Hours</Label>
-              <Input id="operating_hours" placeholder="e.g. Mon-Fri 8:00-18:00" value={form.operating_hours} disabled={isSubmitting} onChange={(e) => set('operating_hours', e.target.value)}/>
+              <Input id="operating_hours" placeholder="e.g. Mon-Fri 8:00-18:00" {...register('operating_hours')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="library_hours">Library Hours</Label>
-              <Input id="library_hours" placeholder="e.g. Mon-Sat 7:00-22:00" value={form.library_hours} disabled={isSubmitting} onChange={(e) => set('library_hours', e.target.value)}/>
+              <Input id="library_hours" placeholder="e.g. Mon-Sat 7:00-22:00" {...register('library_hours')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="emergency_contact">Emergency Contact</Label>
-              <Input id="emergency_contact" placeholder="e.g. Campus Security" value={form.emergency_contact} disabled={isSubmitting} onChange={(e) => set('emergency_contact', e.target.value)}/>
+              <Input id="emergency_contact" placeholder="e.g. Campus Security" {...register('emergency_contact')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="emergency_phone">Emergency Phone</Label>
-              <Input id="emergency_phone" placeholder="e.g. +1 617-555-0911" value={form.emergency_phone} disabled={isSubmitting} onChange={(e) => set('emergency_phone', e.target.value)}/>
+              <Input id="emergency_phone" placeholder="e.g. +1 617-555-0911" {...register('emergency_phone')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="medical_facilities">Medical Facilities</Label>
-              <Input id="medical_facilities" placeholder="e.g. Health Center, Clinic" value={form.medical_facilities} disabled={isSubmitting} onChange={(e) => set('medical_facilities', e.target.value)}/>
+              <Input id="medical_facilities" placeholder="e.g. Health Center, Clinic" {...register('medical_facilities')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="security_details">Security Details</Label>
-              <Input id="security_details" placeholder="e.g. 24/7 patrol, CCTV" value={form.security_details} disabled={isSubmitting} onChange={(e) => set('security_details', e.target.value)}/>
+              <Input id="security_details" placeholder="e.g. 24/7 patrol, CCTV" {...register('security_details')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -357,15 +330,15 @@ export function EditCampus() {
           <CardContent className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="facilities">Facilities (JSON)</Label>
-              <Textarea id="facilities" placeholder='e.g. {"labs": 30, "libraries": 3, "auditoriums": 5}' value={form.facilities} disabled={isSubmitting} onChange={(e) => set('facilities', e.target.value)}/>
+              <Textarea id="facilities" placeholder='e.g. {"labs": 30, "libraries": 3, "auditoriums": 5}' {...register('facilities')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="transport_routes">Transport Routes (JSON)</Label>
-              <Textarea id="transport_routes" placeholder='e.g. [{"route": "A", "stops": ["Main Gate", "Library"]}]' value={form.transport_routes} disabled={isSubmitting} onChange={(e) => set('transport_routes', e.target.value)}/>
+              <Textarea id="transport_routes" placeholder='e.g. [{"route": "A", "stops": ["Main Gate", "Library"]}]' {...register('transport_routes')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="sports_facilities">Sports Facilities (JSON)</Label>
-              <Textarea id="sports_facilities" placeholder='e.g. {"gym": true, "stadium": 1, "pool": true}' value={form.sports_facilities} disabled={isSubmitting} onChange={(e) => set('sports_facilities', e.target.value)}/>
+              <Textarea id="sports_facilities" placeholder='e.g. {"gym": true, "stadium": 1, "pool": true}' {...register('sports_facilities')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>

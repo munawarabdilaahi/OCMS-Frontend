@@ -3,9 +3,10 @@ import { ArrowUpDown, Building2, Download, GraduationCap, MoreHorizontal, Pencil
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,20 +17,8 @@ import { getUniversities, deleteUniversity } from '@/services/universities.servi
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
 
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-muted text-muted-foreground',
-    SUSPENDED: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    CLOSED: 'bg-red-500/10 text-red-700 dark:text-red-300',
-};
-
-const typeLabels = {
-    PUBLIC: 'Public',
-    PRIVATE: 'Private',
-    CHARTERED: 'Chartered',
-    FAITH_BASED: 'Faith-Based',
-    OTHER: 'Other',
-};
+import { ORG_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
+import { UNIVERSITY_TYPE_LABELS as typeLabels } from '@/lib/organization-types';
 
 function exportUniversities(rows) {
     if (!rows.length) return;
@@ -295,10 +284,7 @@ export function UniversitiesList() {
         </div>
       )}
 
-      {error && (<Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>)}
+      <ErrorAlert message={error} onRetry={fetchUniversities} />
 
       <Card>
         <CardHeader>
@@ -330,9 +316,7 @@ export function UniversitiesList() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <p className="text-muted-foreground">Loading universities...</p>
-            </div>
+            <TableSkeleton />
           ) : (
             <UniversitiesDataTable data={filtered} onDelete={handleDelete} searchInput={searchInput} onSearchChange={handleSearchChange}/>
           )}

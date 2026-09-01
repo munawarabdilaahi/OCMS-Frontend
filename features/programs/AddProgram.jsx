@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,27 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
+import { programSchema, emptyProgramValues } from './program-schema.js';
 import { getDepartments } from '@/services/departments.service';
 import { createProgram } from '@/services/programs.service';
 import { PageHeader } from '@/components/common/PageHeader';
 
 const programTypes = ['UNDERGRADUATE', 'POSTGRADUATE', 'DIPLOMA', 'CERTIFICATE'];
 
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
-
 export function AddProgram() {
     const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [code, setCode] = useState('');
-    const [departmentId, setDepartmentId] = useState('');
-    const [durationYears, setDurationYears] = useState('');
-    const [type, setType] = useState('');
     const [departments, setDepartments] = useState([]);
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(programSchema),
+        defaultValues: emptyProgramValues,
+    });
 
     useEffect(() => {
         getDepartments()
@@ -36,34 +32,20 @@ export function AddProgram() {
             .catch(() => toast.error('Failed to load form data.'));
     }, []);
 
-    function validate() {
-        const errs = {};
-        if (!name.trim()) errs.name = 'Program name is required.';
-        if (!code.trim()) errs.code = 'Program code is required.';
-        if (!departmentId) errs.departmentId = 'Department is required.';
-        if (!type) errs.type = 'Program type is required.';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-        if (!validate()) return;
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
             await createProgram({
-                name: name.trim(),
-                code: code.trim(),
-                department_id: Number(departmentId),
-                duration_years: durationYears ? Number(durationYears) : undefined,
-                type,
+                name: values.name.trim(),
+                code: values.code.trim(),
+                department_id: Number(values.department_id),
+                duration_years: values.duration_years ? Number(values.duration_years) : undefined,
+                type: values.type,
             });
             toast.success('Program created successfully.');
             navigate('/programs');
         }
         catch (err) {
             toast.error(err.message || 'Failed to create program.');
-            setIsSubmitting(false);
         }
     }
 
@@ -76,41 +58,49 @@ export function AddProgram() {
           <CardDescription>Enter the program name, code, department, and other details.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Program Name *</Label>
-                <Input id="name" placeholder="e.g. Bachelor of Science" value={name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}/>
-                <FieldError message={errors.name}/>
+                <Input id="name" placeholder="e.g. Bachelor of Science" disabled={isSubmitting} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('name') : undefined} {...register('name')}/>
+                <FieldError id={fieldErrorId('name')} message={errors.name?.message}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="code">Program Code *</Label>
-                <Input id="code" placeholder="e.g. BSC" value={code} disabled={isSubmitting} aria-invalid={Boolean(errors.code)} onChange={(e) => { setCode(e.target.value); setErrors((p) => ({ ...p, code: undefined })); }}/>
-                <FieldError message={errors.code}/>
+                <Input id="code" placeholder="e.g. BSC" disabled={isSubmitting} aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? fieldErrorId('code') : undefined} {...register('code')}/>
+                <FieldError id={fieldErrorId('code')} message={errors.code?.message}/>
               </div>
               <div className="space-y-2">
                 <Label>Department *</Label>
-                <Select value={departmentId} disabled={isSubmitting} onValueChange={(v) => { setDepartmentId(v); setErrors((p) => ({ ...p, departmentId: undefined })); }}>
-                  <SelectTrigger aria-invalid={Boolean(errors.departmentId)}><SelectValue placeholder="Select a department..."/></SelectTrigger>
-                  <SelectContent>
-                    {departments.map((d) => (<SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <FieldError message={errors.departmentId}/>
+                <Controller control={control} name="department_id" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.department_id)} aria-describedby={errors.department_id ? fieldErrorId('department_id') : undefined}>
+                      <SelectValue placeholder="Select a department..."/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (<SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('department_id')} message={errors.department_id?.message}/>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="durationYears">Duration (Years)</Label>
-                <Input id="durationYears" type="number" min="1" max="10" placeholder="e.g. 4" value={durationYears} disabled={isSubmitting} onChange={(e) => setDurationYears(e.target.value)}/>
+                <Label htmlFor="duration_years">Duration (Years)</Label>
+                <Input id="duration_years" type="number" min="1" max="10" placeholder="e.g. 4" disabled={isSubmitting} {...register('duration_years')}/>
               </div>
               <div className="space-y-2">
                 <Label>Program Type *</Label>
-                <Select value={type} disabled={isSubmitting} onValueChange={(v) => { setType(v); setErrors((p) => ({ ...p, type: undefined })); }}>
-                  <SelectTrigger aria-invalid={Boolean(errors.type)}><SelectValue placeholder="Select program type..."/></SelectTrigger>
-                  <SelectContent>
-                    {programTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <FieldError message={errors.type}/>
+                <Controller control={control} name="type" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.type)} aria-describedby={errors.type ? fieldErrorId('type') : undefined}>
+                      <SelectValue placeholder="Select program type..."/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {programTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('type')} message={errors.type?.message}/>
               </div>
             </div>
 

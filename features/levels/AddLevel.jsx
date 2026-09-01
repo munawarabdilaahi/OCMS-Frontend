@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,24 +8,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
+import { levelSchema, emptyLevelValues } from './level-schema.js';
 import { getPrograms } from '@/services/programs.service';
 import { createLevel } from '@/services/levels.service';
 import { PageHeader } from '@/components/common/PageHeader';
 
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
-
 export function AddLevel() {
     const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [code, setCode] = useState('');
-    const [programId, setProgramId] = useState('');
-    const [sortOrder, setSortOrder] = useState('');
     const [programs, setPrograms] = useState([]);
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(levelSchema),
+        defaultValues: emptyLevelValues,
+    });
 
     useEffect(() => {
         getPrograms()
@@ -33,32 +30,19 @@ export function AddLevel() {
             .catch(() => toast.error('Failed to load form data.'));
     }, []);
 
-    function validate() {
-        const errs = {};
-        if (!name.trim()) errs.name = 'Level name is required.';
-        if (!code.trim()) errs.code = 'Level code is required.';
-        if (!programId) errs.programId = 'Program is required.';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-        if (!validate()) return;
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
             await createLevel({
-                name: name.trim(),
-                code: code.trim(),
-                program_id: Number(programId),
-                sort_order: sortOrder ? Number(sortOrder) : undefined,
+                name: values.name.trim(),
+                code: values.code.trim(),
+                program_id: Number(values.program_id),
+                sort_order: values.sort_order ? Number(values.sort_order) : undefined,
             });
             toast.success('Level created successfully.');
             navigate('/levels');
         }
         catch (err) {
             toast.error(err.message || 'Failed to create level.');
-            setIsSubmitting(false);
         }
     }
 
@@ -71,31 +55,35 @@ export function AddLevel() {
           <CardDescription>Enter the level name, code, and associated program.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Level Name *</Label>
-                <Input id="name" placeholder="e.g. Year 1" value={name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}/>
-                <FieldError message={errors.name}/>
+                <Input id="name" placeholder="e.g. Year 1" disabled={isSubmitting} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('name') : undefined} {...register('name')}/>
+                <FieldError id={fieldErrorId('name')} message={errors.name?.message}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="code">Level Code *</Label>
-                <Input id="code" placeholder="e.g. Y1" value={code} disabled={isSubmitting} aria-invalid={Boolean(errors.code)} onChange={(e) => { setCode(e.target.value); setErrors((p) => ({ ...p, code: undefined })); }}/>
-                <FieldError message={errors.code}/>
+                <Input id="code" placeholder="e.g. Y1" disabled={isSubmitting} aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? fieldErrorId('code') : undefined} {...register('code')}/>
+                <FieldError id={fieldErrorId('code')} message={errors.code?.message}/>
               </div>
               <div className="space-y-2">
                 <Label>Program *</Label>
-                <Select value={programId} disabled={isSubmitting} onValueChange={(v) => { setProgramId(v); setErrors((p) => ({ ...p, programId: undefined })); }}>
-                  <SelectTrigger aria-invalid={Boolean(errors.programId)}><SelectValue placeholder="Select a program..."/></SelectTrigger>
-                  <SelectContent>
-                    {programs.map((p) => (<SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <FieldError message={errors.programId}/>
+                <Controller control={control} name="program_id" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.program_id)} aria-describedby={errors.program_id ? fieldErrorId('program_id') : undefined}>
+                      <SelectValue placeholder="Select a program..."/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {programs.map((p) => (<SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('program_id')} message={errors.program_id?.message}/>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sortOrder">Sort Order</Label>
-                <Input id="sortOrder" type="number" min="1" placeholder="e.g. 1" value={sortOrder} disabled={isSubmitting} onChange={(e) => setSortOrder(e.target.value)}/>
+                <Label htmlFor="sort_order">Sort Order</Label>
+                <Input id="sort_order" type="number" min="1" placeholder="e.g. 1" disabled={isSubmitting} {...register('sort_order')}/>
               </div>
             </div>
 

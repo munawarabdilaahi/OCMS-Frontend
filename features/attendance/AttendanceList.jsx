@@ -1,25 +1,22 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, CalendarCheck, Clock3, Download, Plus, Search, UserCheck, UserMinus, UserRoundCheck, } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 import { getAttendance, getAttendanceStats } from '@/services/attendance.service';
 import { SortButton } from '@/components/ui/data-table';
 
-const statusStyles = {
-    PRESENT: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    ABSENT: 'bg-destructive/10 text-destructive',
-    LATE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-};
+import { ATTENDANCE_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 
 function exportAttendance(rows) {
     if (!rows.length) return;
@@ -198,7 +195,9 @@ export function AttendanceList() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    useEffect(() => {
+    const fetchAttendance = useCallback(() => {
+        setLoading(true);
+        setError('');
         const params = isStudent && user?.studentId ? { student_id: user.studentId } : {};
         Promise.all([getAttendance(params), getAttendanceStats(params)])
             .then(([attendanceRes, statsData]) => {
@@ -209,6 +208,7 @@ export function AttendanceList() {
             .catch(() => setError('Failed to load attendance data.'))
             .finally(() => setLoading(false));
     }, [isStudent, user?.studentId]);
+    useEffect(() => { fetchAttendance(); }, [fetchAttendance]);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -224,7 +224,7 @@ export function AttendanceList() {
         </span>
       </div>
 
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchAttendance} />
 
       <AttendanceDashboardCards stats={stats}/>
 
@@ -235,7 +235,7 @@ export function AttendanceList() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading attendance...</p></div>
+            <TableSkeleton />
           ) : (
             <AttendanceDataTable data={records} isStudent={isStudent}/>
           )}

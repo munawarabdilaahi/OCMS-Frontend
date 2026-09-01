@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -9,10 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { teacherDepartments, teacherPositions, teacherStatuses } from '@/features/teachers/teachers-data';
+import { teacherSchema, emptyTeacherValues } from '@/features/teachers/teacher-schema';
 import { getDepartments } from '@/services/departments.service';
 import { createTeacher, updateTeacher } from '@/services/teachers.service';
-import { FieldError, fieldErrorId } from '@/components/ui/field-error';
+import { GENDERS } from '@/lib/genders';
 
 function SelectField({ control, name, label, options, disabled, error }) {
     const errorId = fieldErrorId(name);
@@ -47,22 +50,10 @@ export function TeacherForm({ mode = 'add', defaultValues }) {
             .catch(() => {});
     }, []);
 
-    const emptyValues = {
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        gender: 'Male',
-        department: departments[0] || 'Computer Science',
-        position: 'Lecturer',
-        qualification: '',
-        employmentDate: '',
-        address: '',
-        status: 'Active',
-        ...(defaultValues || {}),
-    };
-
-    const { control, register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ defaultValues: emptyValues });
+    const { control, register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(teacherSchema),
+        defaultValues: defaultValues || emptyTeacherValues,
+    });
 
     async function onSubmit(values) {
         try {
@@ -108,30 +99,30 @@ export function TeacherForm({ mode = 'add', defaultValues }) {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} aria-describedby={errors.firstName ? fieldErrorId('firstName') : undefined} {...register('firstName', { required: 'First name is required.' })}/>
+              <Input id="firstName" disabled={isSubmitting} aria-invalid={Boolean(errors.firstName)} aria-describedby={errors.firstName ? fieldErrorId('firstName') : undefined} {...register('firstName')}/>
               <FieldError id={fieldErrorId('firstName')} message={errors.firstName?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? fieldErrorId('lastName') : undefined} {...register('lastName', { required: 'Last name is required.' })}/>
+              <Input id="lastName" disabled={isSubmitting} aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? fieldErrorId('lastName') : undefined} {...register('lastName')}/>
               <FieldError id={fieldErrorId('lastName')} message={errors.lastName?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined} {...register('email', { required: 'Email is required.' })}/>
+              <Input id="email" type="email" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined} {...register('email')}/>
               <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? fieldErrorId('phone') : undefined} {...register('phone', { required: 'Phone is required.' })}/>
+              <Input id="phone" disabled={isSubmitting} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? fieldErrorId('phone') : undefined} {...register('phone')}/>
               <FieldError id={fieldErrorId('phone')} message={errors.phone?.message}/>
             </div>
-            <SelectField control={control} name="gender" label="Gender" options={['Male', 'Female', 'Other']} disabled={isSubmitting} error={errors.gender}/>
+            <SelectField control={control} name="gender" label="Gender" options={GENDERS} disabled={isSubmitting} error={errors.gender}/>
             <SelectField control={control} name="department" label="Department" options={departments} disabled={isSubmitting} error={errors.department}/>
             <SelectField control={control} name="position" label="Position" options={teacherPositions} disabled={isSubmitting} error={errors.position}/>
             <div className="space-y-2">
               <Label htmlFor="qualification">Qualification</Label>
-              <Input id="qualification" disabled={isSubmitting} aria-invalid={Boolean(errors.qualification)} aria-describedby={errors.qualification ? fieldErrorId('qualification') : undefined} {...register('qualification', { required: 'Qualification is required.' })}/>
+              <Input id="qualification" disabled={isSubmitting} aria-invalid={Boolean(errors.qualification)} aria-describedby={errors.qualification ? fieldErrorId('qualification') : undefined} {...register('qualification')}/>
               <FieldError id={fieldErrorId('qualification')} message={errors.qualification?.message}/>
             </div>
             <div className="space-y-2">

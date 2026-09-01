@@ -1,13 +1,14 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, Download, Eye, GraduationCap, MoreHorizontal, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from '@/lib/router';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
@@ -184,7 +185,9 @@ export function ResultsList() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    useEffect(() => {
+    const fetchResults = useCallback(() => {
+        setLoading(true);
+        setError('');
         const params = {};
         if (course) params.course_id = course;
         getExamResults(params)
@@ -214,6 +217,7 @@ export function ResultsList() {
             .catch(() => setError('Failed to load results.'))
             .finally(() => setLoading(false));
     }, [course]);
+    useEffect(() => { fetchResults(); }, [fetchResults]);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -231,10 +235,7 @@ export function ResultsList() {
         </span>
       </div>
 
-      {error && (<Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>)}
+      <ErrorAlert message={error} onRetry={fetchResults} />
 
       <Card>
         <CardHeader>
@@ -247,9 +248,7 @@ export function ResultsList() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <p className="text-muted-foreground">Loading results...</p>
-            </div>
+            <TableSkeleton />
           ) : (
             <ResultsDataTable data={results} initialCourse={course} isStudent={isStudent}/>
           )}

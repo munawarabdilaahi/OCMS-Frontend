@@ -3,7 +3,8 @@ import { ArrowLeft, ArrowUpDown, Download, Eye, MoreHorizontal, Search } from 'l
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from '@/lib/router';
 import { EmptyState } from '@/components/common/EmptyState';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,16 +17,9 @@ import { formatCurrency, formatDate, paymentStatuses } from '@/features/payments
 import { getInvoices, getInvoiceStats } from '@/services/payments.service';
 import { SortButton } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/common/PageHeader';
+import { INVOICE_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
+import { INVOICE_STATUSES as invoiceStatuses } from '@/lib/statuses';
 
-const invoiceStatuses = ['PENDING', 'PAID', 'PARTIAL', 'OVERDUE', 'CANCELLED'];
-const statusStyles = {
-    PAID: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    PARTIAL: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    OVERDUE: 'bg-destructive/10 text-destructive',
-    CANCELLED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
-    REFUNDED: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
-};
 function exportInvoices(rows) {
     if (!rows.length) return;
     const headers = ['Invoice Number', 'Student', 'Fee', 'Amount', 'Paid', 'Balance', 'Status', 'Due Date'];
@@ -173,7 +167,7 @@ export function InvoicesList() {
         </Card>
       </div>
 
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchData} />
 
       <Card>
         <CardHeader>
@@ -181,7 +175,7 @@ export function InvoicesList() {
           <CardDescription>Search, filter, export, and inspect all finance invoices.</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? <p className="text-sm text-muted-foreground">Loading...</p> : (
+          {loading ? <TableSkeleton /> : (
           <div className="space-y-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="grid gap-3 sm:grid-cols-[minmax(0,320px)_170px]">

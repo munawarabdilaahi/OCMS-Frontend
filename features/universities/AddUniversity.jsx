@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import { Link, useNavigate } from '@/lib/router';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,49 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createUniversity } from '@/services/universities.service';
 import { PageHeader } from '@/components/common/PageHeader';
-
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
+import { universitySchema, emptyUniversityValues } from './university-schema.js';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 
 export function AddUniversity() {
     const navigate = useNavigate();
-    const [form, setForm] = useState({
-        name: '', code: '', type: 'PUBLIC', established_date: '',
-        accreditation_body: '', accreditation_status: '', accreditation_expiry: '',
-        address: '', phone: '', email: '', website: '',
-        timezone: 'UTC', locale: 'en', currency: 'USD',
-        logo_url: '', favicon_url: '', primary_color: '', secondary_color: '',
-        contact_person_name: '', contact_person_email: '', contact_person_phone: '',
-        mission_statement: '', vision_statement: '', motto: '',
-        max_campuses: '', max_students: '',
+    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(universitySchema),
+        defaultValues: emptyUniversityValues,
     });
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    function set(field, value) {
-        setForm((p) => ({ ...p, [field]: value }));
-        setErrors((p) => ({ ...p, [field]: undefined }));
-    }
-
-    function validate() {
-        const errs = {};
-        if (!form.name.trim()) errs.name = 'University name is required.';
-        if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email format.';
-        if (form.website && !/^https?:\/\/.+/.test(form.website)) errs.website = 'Website must start with http:// or https://.';
-        if (form.contact_person_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact_person_email)) errs.contact_person_email = 'Invalid email format.';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-        if (!validate()) return;
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
             const payload = {};
-            for (const [key, value] of Object.entries(form)) {
+            for (const [key, value] of Object.entries(values)) {
                 if (value !== '' && value !== undefined) payload[key] = value;
             }
             await createUniversity(payload);
@@ -58,29 +30,28 @@ export function AddUniversity() {
             navigate('/universities');
         } catch (err) {
             toast.error(err.message || 'Failed to create university.');
-            setIsSubmitting(false);
         }
     }
 
     return (<div className="space-y-6">
       <PageHeader title="Add University" description="Create a new university record with full enterprise details." />
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <Card>
           <CardHeader><CardTitle>Basic Information</CardTitle><CardDescription>University identity and classification.</CardDescription></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">University Name *</Label>
-              <Input id="name" placeholder="e.g. Harvard University" value={form.name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(e) => set('name', e.target.value)}/>
-              <FieldError message={errors.name}/>
+              <Input id="name" placeholder="e.g. Harvard University" {...register('name')} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('name') : undefined}/>
+              <FieldError id={fieldErrorId('name')} message={errors.name?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="code">Code</Label>
-              <Input id="code" placeholder="e.g. HARV (auto-generated if empty)" value={form.code} disabled={isSubmitting} onChange={(e) => set('code', e.target.value.toUpperCase())}/>
+              <Input id="code" placeholder="e.g. HARV (auto-generated if empty)" {...register('code')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
-              <select id="type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.type} disabled={isSubmitting} onChange={(e) => set('type', e.target.value)}>
+              <select id="type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" {...register('type')} disabled={isSubmitting}>
                 <option value="PUBLIC">Public</option>
                 <option value="PRIVATE">Private</option>
                 <option value="CHARTERED">Chartered</option>
@@ -90,7 +61,7 @@ export function AddUniversity() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="established_date">Established Date</Label>
-              <Input id="established_date" type="date" value={form.established_date} disabled={isSubmitting} onChange={(e) => set('established_date', e.target.value)}/>
+              <Input id="established_date" type="date" {...register('established_date')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -100,15 +71,15 @@ export function AddUniversity() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="accreditation_body">Accreditation Body</Label>
-              <Input id="accreditation_body" placeholder="e.g. HEC, ABET" value={form.accreditation_body} disabled={isSubmitting} onChange={(e) => set('accreditation_body', e.target.value)}/>
+              <Input id="accreditation_body" placeholder="e.g. HEC, ABET" {...register('accreditation_body')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="accreditation_status">Accreditation Status</Label>
-              <Input id="accreditation_status" placeholder="e.g. Accredited, Provisional" value={form.accreditation_status} disabled={isSubmitting} onChange={(e) => set('accreditation_status', e.target.value)}/>
+              <Input id="accreditation_status" placeholder="e.g. Accredited, Provisional" {...register('accreditation_status')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="accreditation_expiry">Accreditation Expiry</Label>
-              <Input id="accreditation_expiry" type="date" value={form.accreditation_expiry} disabled={isSubmitting} onChange={(e) => set('accreditation_expiry', e.target.value)}/>
+              <Input id="accreditation_expiry" type="date" {...register('accreditation_expiry')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -118,33 +89,33 @@ export function AddUniversity() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address">Address</Label>
-              <Input id="address" placeholder="e.g. 123 University Ave, Cambridge, MA" value={form.address} disabled={isSubmitting} onChange={(e) => set('address', e.target.value)}/>
+              <Input id="address" placeholder="e.g. 123 University Ave, Cambridge, MA" {...register('address')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" placeholder="e.g. +1 617-555-1234" value={form.phone} disabled={isSubmitting} onChange={(e) => set('phone', e.target.value)}/>
+              <Input id="phone" placeholder="e.g. +1 617-555-1234" {...register('phone')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="e.g. info@university.edu" value={form.email} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} onChange={(e) => set('email', e.target.value)}/>
-              <FieldError message={errors.email}/>
+              <Input id="email" type="email" placeholder="e.g. info@university.edu" {...register('email')} disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined}/>
+              <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
-              <Input id="website" placeholder="e.g. https://www.harvard.edu" value={form.website} disabled={isSubmitting} aria-invalid={Boolean(errors.website)} onChange={(e) => set('website', e.target.value)}/>
-              <FieldError message={errors.website}/>
+              <Input id="website" placeholder="e.g. https://www.harvard.edu" {...register('website')} disabled={isSubmitting} aria-invalid={Boolean(errors.website)} aria-describedby={errors.website ? fieldErrorId('website') : undefined}/>
+              <FieldError id={fieldErrorId('website')} message={errors.website?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="timezone">Timezone</Label>
-              <Input id="timezone" placeholder="e.g. UTC, America/New_York" value={form.timezone} disabled={isSubmitting} onChange={(e) => set('timezone', e.target.value)}/>
+              <Input id="timezone" placeholder="e.g. UTC, America/New_York" {...register('timezone')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="locale">Locale</Label>
-              <Input id="locale" placeholder="e.g. en, fr, ar" value={form.locale} disabled={isSubmitting} onChange={(e) => set('locale', e.target.value)}/>
+              <Input id="locale" placeholder="e.g. en, fr, ar" {...register('locale')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
-              <Input id="currency" placeholder="e.g. USD, EUR, GBP" value={form.currency} disabled={isSubmitting} onChange={(e) => set('currency', e.target.value.toUpperCase())}/>
+              <Input id="currency" placeholder="e.g. USD, EUR, GBP" {...register('currency')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -154,19 +125,19 @@ export function AddUniversity() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="logo_url">Logo URL</Label>
-              <Input id="logo_url" placeholder="https://..." value={form.logo_url} disabled={isSubmitting} onChange={(e) => set('logo_url', e.target.value)}/>
+              <Input id="logo_url" placeholder="https://..." {...register('logo_url')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="favicon_url">Favicon URL</Label>
-              <Input id="favicon_url" placeholder="https://..." value={form.favicon_url} disabled={isSubmitting} onChange={(e) => set('favicon_url', e.target.value)}/>
+              <Input id="favicon_url" placeholder="https://..." {...register('favicon_url')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="primary_color">Primary Color</Label>
-              <Input id="primary_color" placeholder="e.g. #A51C30" value={form.primary_color} disabled={isSubmitting} onChange={(e) => set('primary_color', e.target.value)}/>
+              <Input id="primary_color" placeholder="e.g. #A51C30" {...register('primary_color')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="secondary_color">Secondary Color</Label>
-              <Input id="secondary_color" placeholder="e.g. #C3A456" value={form.secondary_color} disabled={isSubmitting} onChange={(e) => set('secondary_color', e.target.value)}/>
+              <Input id="secondary_color" placeholder="e.g. #C3A456" {...register('secondary_color')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -176,16 +147,16 @@ export function AddUniversity() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="contact_person_name">Name</Label>
-              <Input id="contact_person_name" placeholder="e.g. Dr. Jane Smith" value={form.contact_person_name} disabled={isSubmitting} onChange={(e) => set('contact_person_name', e.target.value)}/>
+              <Input id="contact_person_name" placeholder="e.g. Dr. Jane Smith" {...register('contact_person_name')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact_person_email">Email</Label>
-              <Input id="contact_person_email" type="email" placeholder="e.g. president@university.edu" value={form.contact_person_email} disabled={isSubmitting} aria-invalid={Boolean(errors.contact_person_email)} onChange={(e) => set('contact_person_email', e.target.value)}/>
-              <FieldError message={errors.contact_person_email}/>
+              <Input id="contact_person_email" type="email" placeholder="e.g. president@university.edu" {...register('contact_person_email')} disabled={isSubmitting} aria-invalid={Boolean(errors.contact_person_email)} aria-describedby={errors.contact_person_email ? fieldErrorId('contact_person_email') : undefined}/>
+              <FieldError id={fieldErrorId('contact_person_email')} message={errors.contact_person_email?.message}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact_person_phone">Phone</Label>
-              <Input id="contact_person_phone" placeholder="e.g. +1 617-555-5678" value={form.contact_person_phone} disabled={isSubmitting} onChange={(e) => set('contact_person_phone', e.target.value)}/>
+              <Input id="contact_person_phone" placeholder="e.g. +1 617-555-5678" {...register('contact_person_phone')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -195,15 +166,15 @@ export function AddUniversity() {
           <CardContent className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="motto">Motto</Label>
-              <Input id="motto" placeholder="e.g. Veritas (Truth)" value={form.motto} disabled={isSubmitting} onChange={(e) => set('motto', e.target.value)}/>
+              <Input id="motto" placeholder="e.g. Veritas (Truth)" {...register('motto')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="mission_statement">Mission Statement</Label>
-              <Textarea id="mission_statement" placeholder="Enter the university's mission statement..." value={form.mission_statement} disabled={isSubmitting} onChange={(e) => set('mission_statement', e.target.value)}/>
+              <Textarea id="mission_statement" placeholder="Enter the university's mission statement..." {...register('mission_statement')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="vision_statement">Vision Statement</Label>
-              <Textarea id="vision_statement" placeholder="Enter the university's vision statement..." value={form.vision_statement} disabled={isSubmitting} onChange={(e) => set('vision_statement', e.target.value)}/>
+              <Textarea id="vision_statement" placeholder="Enter the university's vision statement..." {...register('vision_statement')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>
@@ -213,11 +184,11 @@ export function AddUniversity() {
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="max_campuses">Max Campuses</Label>
-              <Input id="max_campuses" type="number" min="1" placeholder="e.g. 10" value={form.max_campuses} disabled={isSubmitting} onChange={(e) => set('max_campuses', e.target.value)}/>
+              <Input id="max_campuses" type="number" min="1" placeholder="e.g. 10" {...register('max_campuses')} disabled={isSubmitting}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="max_students">Max Students</Label>
-              <Input id="max_students" type="number" min="1" placeholder="e.g. 100000" value={form.max_students} disabled={isSubmitting} onChange={(e) => set('max_students', e.target.value)}/>
+              <Input id="max_students" type="number" min="1" placeholder="e.g. 100000" {...register('max_students')} disabled={isSubmitting}/>
             </div>
           </CardContent>
         </Card>

@@ -8,12 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { InfoGrid } from '@/components/common/InfoGrid';
 import { getCourse } from '@/services/courses.service';
 import { cn } from '@/lib/cn';
-
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-muted text-muted-foreground',
-};
-
+import { COURSE_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 export function CourseDetails() {
     const { id } = useParams();
     const [course, setCourse] = useState(null);

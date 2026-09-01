@@ -7,13 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getTeacher } from '@/services/teachers.service';
 import { cn } from '@/lib/cn';
-
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    DELETED: 'bg-destructive/10 text-destructive',
-};
-
+import { TEACHER_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 function InfoGrid({ items }) {
     return (<div className="grid gap-4 md:grid-cols-2">
       {items.map((item) => (<div key={item.label} className="rounded-lg border bg-secondary/30 p-4">

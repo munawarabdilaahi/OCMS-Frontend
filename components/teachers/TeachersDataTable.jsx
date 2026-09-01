@@ -1,10 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Link } from '@/lib/router';
 import { flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable, } from "@tanstack/react-table";
-import { MoreHorizontal, Search, Pencil, Trash2, Eye, } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from '@/components/common/EmptyState';
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
@@ -12,15 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
 
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    DELETED: 'bg-destructive/10 text-destructive',
-};
+import { TEACHER_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 
 export function TeachersDataTable({ data, onDelete }) {
     const [sorting, setSorting] = useState([]);
-    const [globalFilter, setGlobalFilter] = useState("");
     const columns = useMemo(() => [
         {
             accessorKey: "id",
@@ -81,9 +75,8 @@ export function TeachersDataTable({ data, onDelete }) {
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, globalFilter },
+        state: { sorting },
         onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -91,10 +84,6 @@ export function TeachersDataTable({ data, onDelete }) {
 
     return (<div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
-          <Input className="pl-9" placeholder="Search teachers..." value={globalFilter ?? ""} onChange={(event) => setGlobalFilter(event.target.value)}/>
-        </div>
         <div className="flex gap-2">
           <Select value={table.getColumn('department')?.getFilterValue() ?? 'all'} onValueChange={(value) => table.getColumn('department')?.setFilterValue(value === 'all' ? undefined : value)}>
             <SelectTrigger className="w-[160px]">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
@@ -70,7 +70,7 @@ export function TeachersList() {
         onConfirm={handleDelete}
       />
       <PageHeader title="Teachers" description={`${totalCount} teacher${totalCount !== 1 ? 's' : ''} registered`} actionLabel="+ Add Teacher" actionTo="/teachers/add" loading={loading} />
-      {error && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+      <ErrorAlert message={error} onRetry={fetchTeachers} />
       <Card>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

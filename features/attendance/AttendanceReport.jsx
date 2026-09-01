@@ -1,24 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from '@/lib/router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/cn';
 import { ROLES } from '@/lib/roles';
 import { getAttendance, getAttendanceStats } from '@/services/attendance.service';
 import { getCourses } from '@/services/courses.service';
-
-const statusStyles = {
-    PRESENT: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    ABSENT: 'bg-destructive/10 text-destructive',
-    LATE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-};
-
+import { ATTENDANCE_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 export function AttendanceReport() {
     const { user } = useAuth();
     const isStudent = user?.role === ROLES.STUDENT;
@@ -38,8 +33,9 @@ export function AttendanceReport() {
         }).catch(() => setError('Failed to load courses.'));
     }, []);
 
-    useEffect(() => {
+    const fetchReport = useCallback(() => {
         setLoading(true);
+        setError('');
         const params = {};
         if (selectedCourse) params.course_id = selectedCourse;
         if (dateFrom) params.date_from = dateFrom;
@@ -55,6 +51,7 @@ export function AttendanceReport() {
             .catch(() => setError('Failed to load attendance report.'))
             .finally(() => setLoading(false));
     }, [selectedCourse, dateFrom, dateTo, isStudent, user?.studentId]);
+    useEffect(() => { fetchReport(); }, [fetchReport]);
 
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -71,7 +68,7 @@ export function AttendanceReport() {
         </Button>
       </div>
 
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchReport} />
 
       {stats && (<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
@@ -121,7 +118,7 @@ export function AttendanceReport() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading report...</p></div>
+            <TableSkeleton />
           ) : (
             <div className="rounded-lg border">
               <Table>

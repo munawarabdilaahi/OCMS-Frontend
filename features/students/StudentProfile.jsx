@@ -9,14 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InfoGrid } from '@/components/common/InfoGrid';
 import { getStudent } from '@/services/students.service';
 import { cn } from '@/lib/cn';
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    SUSPENDED: 'bg-destructive/10 text-destructive',
-    GRADUATED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    WITHDRAWN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
-    DELETED: 'bg-muted text-muted-foreground',
-};
+import { STUDENT_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
+
 export function StudentProfile() {
     const { studentId } = useParams();
     const [student, setStudent] = useState(null);

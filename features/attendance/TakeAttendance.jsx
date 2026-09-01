@@ -22,7 +22,9 @@ function TakeAttendance() {
     const [courses, setCourses] = useState([]);
     const [students, setStudents] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
+    const [courseError, setCourseError] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [dateError, setDateError] = useState('');
     const [attendanceData, setAttendanceData] = useState({});
     const [remarks, setRemarks] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,8 +72,10 @@ function TakeAttendance() {
 
     async function handleSubmit(event) {
         event.preventDefault();
-        if (!selectedCourse) { toast.error('Please select a course.'); return; }
-        if (!date) { toast.error('Please select a date.'); return; }
+        let valid = true;
+        if (!selectedCourse) { setCourseError('Please select a course.'); valid = false; } else { setCourseError(''); }
+        if (!date) { setDateError('Please select a date.'); valid = false; } else { setDateError(''); }
+        if (!valid) return;
 
         const records = students.map((s) => ({
             student_id: s.id,
@@ -130,16 +134,18 @@ function TakeAttendance() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="course">Course <RequiredIndicator/></Label>
-                <Select id="course" value={selectedCourse} disabled={isSubmitting} onValueChange={setSelectedCourse}>
+                <Select id="course" value={selectedCourse} disabled={isSubmitting} onValueChange={(v) => { setSelectedCourse(v); setCourseError(''); }} aria-invalid={!!courseError} aria-describedby={courseError ? fieldErrorId('course') : undefined}>
                   <SelectTrigger><SelectValue placeholder="Select course"/></SelectTrigger>
                   <SelectContent>
                     {courses.map((c) => (<SelectItem key={c.id} value={String(c.id)}>{c.title || c.code}</SelectItem>))}
                   </SelectContent>
                 </Select>
+                <FieldError id={fieldErrorId('course')} message={courseError}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date <RequiredIndicator/></Label>
-                <Input id="date" type="date" value={date} disabled={isSubmitting} onChange={(e) => setDate(e.target.value)}/>
+                <Input id="date" type="date" value={date} disabled={isSubmitting} onChange={(e) => { setDate(e.target.value); setDateError(''); }} aria-invalid={!!dateError} aria-describedby={dateError ? fieldErrorId('date') : undefined}/>
+                <FieldError id={fieldErrorId('date')} message={dateError}/>
               </div>
             </div>
 

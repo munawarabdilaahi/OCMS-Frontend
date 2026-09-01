@@ -4,6 +4,7 @@ import { TeacherForm } from '@/components/teachers/TeacherForm';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { getTeacher } from '@/services/teachers.service';
+import { teacherStatuses } from '@/features/teachers/teachers-data';
 export function EditTeacher() {
     const { teacherId } = useParams();
     const [teacher, setTeacher] = useState(null);
@@ -17,7 +18,7 @@ export function EditTeacher() {
                 const name = data.name || '';
                 const nameParts = name.split(' ');
                 const statusValue = String(data.status || 'ACTIVE').toUpperCase();
-                const status = ['Active', 'On Leave', 'Contract', 'Inactive', 'Retired'].find((s) => s.toUpperCase() === statusValue) || 'Active';
+                const status = teacherStatuses.find((s) => s.toUpperCase() === statusValue) || 'Active';
                 setTeacher({
                     id: String(data.id || ''),
                     firstName: nameParts[0] || '',

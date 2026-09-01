@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ import { getRoles } from '@/services/roles.service';
 import { cn } from '@/lib/cn';
 import { SortButton } from '@/components/ui/data-table';
 import { useAuth } from '@/hooks/useAuth';
+import { TEACHER_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 
 const createUserSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
@@ -39,12 +41,6 @@ const editUserSchema = z.object({
     role_id: z.string().min(1, 'Role is required.'),
     status: z.string().min(1, 'Status is required.'),
 });
-
-const statusStyles = {
-    ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    INACTIVE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    DELETED: 'bg-destructive/10 text-destructive',
-};
 
 export function UsersList() {
     const { can } = useAuth();
@@ -158,14 +154,14 @@ export function UsersList() {
         </div>
         <Button onClick={openCreate} disabled={!canManage}><Plus /> Add User</Button>
       </div>
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchData} />
       <Card>
         <CardHeader><CardTitle>User Management</CardTitle><CardDescription>Manage user accounts, roles, and status.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="relative max-w-sm">
             <Input placeholder="Search users..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}/>
           </div>
-          {loading ? (<div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading users...</p></div>) : (<div className="space-y-4">
+          {loading ? (<TableSkeleton />) : (<div className="space-y-4">
             <div className="rounded-lg border bg-card">
               <Table>
                 <TableHeader>{table.getHeaderGroups().map((hg) => (<TableRow key={hg.id}>{hg.headers.map((h) => (<TableHead key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</TableHead>))}</TableRow>))}</TableHeader>

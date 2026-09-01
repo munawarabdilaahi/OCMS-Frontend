@@ -1,26 +1,23 @@
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
 import { ArrowUpDown, ClipboardList, Download, MoreHorizontal, Plus, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, } from '@/components/ui/dropdown-menu';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { getExamSchedules } from '@/services/exams.service';
 import { SortButton } from '@/components/ui/data-table';
-export const examStatuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
-const statusStyles = {
-    SCHEDULED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    IN_PROGRESS: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    COMPLETED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    CANCELLED: 'bg-destructive/10 text-destructive',
-};
+import { EXAM_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
+import { EXAM_STATUSES } from '@/lib/statuses';
+export const examStatuses = EXAM_STATUSES;
 function courseLabel(course) {
     return typeof course === 'object' && course !== null ? (course.title || course.code || '') : (course || '');
 }
@@ -193,7 +190,9 @@ export function ExamsList() {
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    useEffect(() => {
+    const fetchExams = useCallback(() => {
+        setLoading(true);
+        setError('');
         getExamSchedules()
             .then((response) => {
             const data = Array.isArray(response) ? response : [];
@@ -207,6 +206,7 @@ export function ExamsList() {
             .catch(() => setError('Failed to load exam schedules.'))
             .finally(() => setLoading(false));
     }, []);
+    useEffect(() => { fetchExams(); }, [fetchExams]);
     return (<div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -218,10 +218,7 @@ export function ExamsList() {
         </span>
       </div>
 
-      {error && (<Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>)}
+      <ErrorAlert message={error} onRetry={fetchExams} />
 
       <Card>
         <CardHeader>
@@ -230,9 +227,7 @@ export function ExamsList() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <p className="text-muted-foreground">Loading exams...</p>
-            </div>
+            <TableSkeleton />
           ) : (
             <ExamsDataTable data={exams}/>
           )}

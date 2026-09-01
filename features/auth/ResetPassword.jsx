@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { resetPasswordRequest } from '@/services/auth.service';
 const schema = z
     .object({
@@ -60,18 +61,18 @@ export function ResetPassword() {
             </Alert>)}
           <div className="space-y-2">
             <Label htmlFor="token">Reset Token</Label>
-            <Input id="token" type="text" placeholder="Enter your reset token" disabled={isSubmitting} aria-invalid={Boolean(errors.token)} {...register('token')}/>
-            {errors.token && <p className="text-sm text-destructive">{errors.token.message}</p>}
+            <Input id="token" type="text" placeholder="Enter your reset token" disabled={isSubmitting} aria-invalid={Boolean(errors.token)} aria-describedby={errors.token ? fieldErrorId('token') : undefined} {...register('token')}/>
+            <FieldError id={fieldErrorId('token')} message={errors.token?.message}/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">New password</Label>
-            <PasswordField id="password" autoComplete="new-password" placeholder="Create a new password" disabled={isSubmitting} invalid={Boolean(errors.password)} registration={register('password')}/>
-            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            <PasswordField id="password" autoComplete="new-password" placeholder="Create a new password" disabled={isSubmitting} invalid={Boolean(errors.password)} aria-describedby={errors.password ? fieldErrorId('password') : undefined} registration={register('password')}/>
+            <FieldError id={fieldErrorId('password')} message={errors.password?.message}/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm password</Label>
-            <PasswordField id="confirmPassword" autoComplete="new-password" placeholder="Confirm your new password" disabled={isSubmitting} invalid={Boolean(errors.confirmPassword)} registration={register('confirmPassword')}/>
-            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
+            <PasswordField id="confirmPassword" autoComplete="new-password" placeholder="Confirm your new password" disabled={isSubmitting} invalid={Boolean(errors.confirmPassword)} aria-describedby={errors.confirmPassword ? fieldErrorId('confirmPassword') : undefined} registration={register('confirmPassword')}/>
+            <FieldError id={fieldErrorId('confirmPassword')} message={errors.confirmPassword?.message}/>
           </div>
           <Button className="w-full" type="submit" disabled={isSubmitting}>
             {isSubmitting ? (<>

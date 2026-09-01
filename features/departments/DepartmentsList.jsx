@@ -1,11 +1,12 @@
-import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
-import { ArrowUpDown, Building2, Download, LayoutDashboard, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
+import { Building2, Download, LayoutDashboard, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { EmptyState } from '@/components/common/EmptyState';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,8 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getDepartmentsWithMeta as getDepartments, deleteDepartment } from '@/services/departments.service';
 import { SortButton } from '@/components/ui/data-table';
-
-const statusColors = { ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400', INACTIVE: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400', SUSPENDED: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400', CLOSED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' };
+import { ORG_STATUS_STYLES as statusColors } from '@/lib/status-styles';
 
 function exportDepartments(allData) {
     if (!allData.length) return;
@@ -45,7 +45,7 @@ function DepartmentsDataTable({ data, onDelete }) {
         { accessorKey: 'course_count', header: ({ column }) => <SortButton column={column}>Courses</SortButton>, cell: ({ row }) => <span>{(row.original.course_count || 0).toLocaleString()}</span> },
         { id: 'actions', header: 'Actions', enableHiding: false, cell: ({ row }) => (<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal /><span className="sr-only">Open row actions</span></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link to={`/departments/${row.original.id}/edit`}><Pencil />Edit</Link></DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => onDelete(row.original)}><Trash2 />Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu>) },
     ], [onDelete]);
-    const table = useReactTable({ data, columns, state: { sorting, globalFilter }, initialState: { pagination: { pageSize: 10 } }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getFilteredRowModel: getFilteredRowModel(), getPaginationRowModel: getPaginationRowModel() });
+    const table = useReactTable({ data, columns, state: { sorting, globalFilter }, onSortingChange: setSorting, onGlobalFilterChange: setGlobalFilter, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getFilteredRowModel: getFilteredRowModel() });
     return (<div className="space-y-4">
       <div className="rounded-lg border bg-card">
         <Table>
@@ -53,7 +53,6 @@ function DepartmentsDataTable({ data, onDelete }) {
           <TableBody>{table.getRowModel().rows?.length ? table.getRowModel().rows.map((row) => (<TableRow key={row.id}>{row.getVisibleCells().map((cell) => (<TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>))}</TableRow>)) : (<TableRow><TableCell colSpan={columns.length} className="p-6"><EmptyState title="No departments found" description="Create a department to get started." actionLabel="Add Department" actionTo="/departments/add"/></TableCell></TableRow>)}</TableBody>
         </Table>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-muted-foreground">Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} departments</p><div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button><span className="text-sm text-muted-foreground">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span><Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button></div></div>
     </div>);
 }
 
@@ -112,7 +111,7 @@ export function DepartmentsList() {
         <div><h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Departments</h1><p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${totalCount} department${totalCount !== 1 ? 's' : ''} registered`}</p></div>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Building2 className="size-5"/></span>
       </div>
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchDepartments} />
       <Card>
         <CardHeader><CardTitle>Department Directory</CardTitle><CardDescription>Search, filter, paginate, export, and manage department records.</CardDescription></CardHeader>
         <CardContent className="space-y-4">
@@ -122,7 +121,7 @@ export function DepartmentsList() {
             <select value={facultyFilter} onChange={(e) => { setFacultyFilter(e.target.value); setPage(1); }} className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"><option value="">All Faculties</option>{uniqueFaculties.map(([id, name]) => (<option key={id} value={id}>{name}</option>))}</select>
             <div className="flex gap-2"><Button type="button" variant="outline" onClick={() => exportDepartments(departments)}><Download />Export</Button><Button asChild><Link to="/departments/add"><Plus />Add Department</Link></Button></div>
           </div>
-          {loading ? (<div className="flex items-center justify-center p-12"><p className="text-muted-foreground">Loading departments...</p></div>) : (<DepartmentsDataTable data={departments} onDelete={(d) => setDeleteTarget(d)}/>)}
+          {loading ? (<TableSkeleton />) : (<DepartmentsDataTable data={departments} onDelete={(d) => setDeleteTarget(d)}/>)}
           {!loading && departments.length > 0 && (<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-muted-foreground">Showing {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, totalCount)} of {totalCount} departments</p><div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button><span className="text-sm text-muted-foreground">Page {page} of {pageCount || 1}</span><Button type="button" variant="outline" size="sm" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page >= pageCount}>Next</Button></div></div>)}
         </CardContent>
       </Card>

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { forgotPasswordRequest } from '@/services/auth.service';
 const schema = z.object({
     email: z.string().email('Enter the email linked to your OCMS account.'),
@@ -51,8 +52,8 @@ export function ForgotPassword() {
             </Alert>)}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" placeholder="name@ocms.edu" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} {...register('email')}/>
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            <Input id="email" type="email" autoComplete="email" placeholder="name@ocms.edu" disabled={isSubmitting} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? fieldErrorId('email') : undefined} {...register('email')}/>
+            <FieldError id={fieldErrorId('email')} message={errors.email?.message}/>
           </div>
           <Button className="w-full" type="submit" disabled={isSubmitting}>
             {isSubmitting ? (<>

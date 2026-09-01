@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,65 +7,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { examStatuses } from '@/features/exams/ExamsList';
+import { examSchema, emptyExamValues } from './exam-schema.js';
 import { createExamSchedule } from '@/services/exams.service';
 import { PageHeader } from '@/components/common/PageHeader';
-const emptyExam = {
-    name: '',
-    course: '',
-    date: '',
-    totalMarks: '',
-    status: 'Scheduled',
-};
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
-function validateExam(values) {
-    const errors = {};
-    const totalMarks = Number(values.totalMarks);
-    if (!values.name.trim()) errors.name = 'Exam name is required.';
-    if (!values.course) errors.course = 'Course is required.';
-    if (!values.date) errors.date = 'Date is required.';
-    if (!Number.isInteger(totalMarks) || totalMarks < 1 || totalMarks > 500) errors.totalMarks = 'Total marks must be a whole number from 1 to 500.';
-    if (!values.status) errors.status = 'Status is required.';
-    return errors;
-}
+
 export function AddExam() {
     const navigate = useNavigate();
-    const [values, setValues] = useState(emptyExam);
-    const [errors, setErrors] = useState({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    function updateField(name, value) {
-        setValues((currentValues) => ({ ...currentValues, [name]: value }));
-        setErrors((currentErrors) => ({ ...currentErrors, [name]: undefined }));
-    }
-    async function handleSubmit(event) {
-        event.preventDefault();
-        const normalizedValues = {
-            ...values,
-            name: values.name.trim(),
-            totalMarks: Number(values.totalMarks),
-        };
-        const validationErrors = validateExam(normalizedValues);
-        if (Object.keys(validationErrors).length) {
-            setErrors(validationErrors);
-            return;
-        }
-        setIsSubmitting(true);
+    const { control, register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(examSchema),
+        defaultValues: emptyExamValues,
+    });
+
+    async function onSubmit(values) {
         try {
             await createExamSchedule({
-                title: normalizedValues.name,
-                course_id: Number(normalizedValues.course),
-                exam_date: normalizedValues.date,
-                status: normalizedValues.status?.toUpperCase() || 'SCHEDULED',
+                title: values.name.trim(),
+                course_id: Number(values.course),
+                exam_date: values.date,
+                status: values.status?.toUpperCase() || 'SCHEDULED',
             });
             toast.success('Exam schedule created.');
             navigate('/exams');
         }
         catch (error) {
             toast.error(error.message || 'Failed to create exam schedule.');
-            setIsSubmitting(false);
         }
     }
     return (<div className="space-y-6">
@@ -76,45 +44,47 @@ export function AddExam() {
           <CardDescription>Enter exam identity, course, date, marks, and current status.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="title">Exam Title</Label>
-                <Input id="title" placeholder="Programming Midterm" value={values.name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(event) => updateField('name', event.target.value)}/>
-                <FieldError message={errors.name}/>
+                <Input id="title" placeholder="Programming Midterm" disabled={isSubmitting} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('name') : undefined} {...register('name')}/>
+                <FieldError id={fieldErrorId('name')} message={errors.name?.message}/>
               </div>
 
               <div className="space-y-2">
                 <Label>Course ID</Label>
-                <Input placeholder="Course ID" value={values.course} disabled={isSubmitting} aria-invalid={Boolean(errors.course)} onChange={(event) => updateField('course', event.target.value)}/>
-                <FieldError message={errors.course}/>
+                <Input placeholder="Course ID" disabled={isSubmitting} aria-invalid={Boolean(errors.course)} aria-describedby={errors.course ? fieldErrorId('course') : undefined} {...register('course')}/>
+                <FieldError id={fieldErrorId('course')} message={errors.course?.message}/>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" value={values.date} disabled={isSubmitting} aria-invalid={Boolean(errors.date)} onChange={(event) => updateField('date', event.target.value)}/>
-                <FieldError message={errors.date}/>
+                <Input id="date" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? fieldErrorId('date') : undefined} {...register('date')}/>
+                <FieldError id={fieldErrorId('date')} message={errors.date?.message}/>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="totalMarks">Total Marks</Label>
-                <Input id="totalMarks" type="number" min="1" max="500" value={values.totalMarks} disabled={isSubmitting} aria-invalid={Boolean(errors.totalMarks)} onChange={(event) => updateField('totalMarks', event.target.value)}/>
-                <FieldError message={errors.totalMarks}/>
+                <Input id="totalMarks" type="number" min="1" max="500" disabled={isSubmitting} aria-invalid={Boolean(errors.totalMarks)} aria-describedby={errors.totalMarks ? fieldErrorId('totalMarks') : undefined} {...register('totalMarks')}/>
+                <FieldError id={fieldErrorId('totalMarks')} message={errors.totalMarks?.message}/>
               </div>
 
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={values.status} disabled={isSubmitting} onValueChange={(value) => updateField('status', value)}>
-                  <SelectTrigger aria-invalid={Boolean(errors.status)}>
-                    <SelectValue placeholder="Select status"/>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {examStatuses.map((status) => (<SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <FieldError message={errors.status}/>
+                <Controller control={control} name="status" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger id="status" aria-invalid={Boolean(errors.status)} aria-describedby={errors.status ? fieldErrorId('status') : undefined}>
+                      <SelectValue placeholder="Select status"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {examStatuses.map((status) => (<SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('status')} message={errors.status?.message}/>
               </div>
             </div>
 

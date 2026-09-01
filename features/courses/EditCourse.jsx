@@ -1,4 +1,6 @@
+import { Controller, useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useParams, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -7,33 +9,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { courseSemesters, courseStatuses } from '@/features/courses/course-constants';
+import { courseSchema, emptyCourseValues } from './course-schema.js';
 import { getDepartments } from '@/services/departments.service';
 import { getCourse, updateCourse } from '@/services/courses.service';
 import { PageHeader } from '@/components/common/PageHeader';
 import { UnauthorizedPage } from '@/features/UnauthorizedPage';
 import { useAuth } from '@/hooks/useAuth';
 
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
-
 export function EditCourse() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { can } = useAuth();
-    const [code, setCode] = useState('');
-    const [title, setTitle] = useState('');
-    const [creditHours, setCreditHours] = useState('');
-    const [semester, setSemester] = useState('');
-    const [status, setStatus] = useState('');
-    const [departmentId, setDepartmentId] = useState('');
     const [departments, setDepartments] = useState([]);
-    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const { control, register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(courseSchema),
+        defaultValues: { ...emptyCourseValues, semester: courseSemesters[0] },
+    });
 
     useEffect(() => {
         getDepartments().then((data) => {
@@ -46,42 +41,33 @@ export function EditCourse() {
         getCourse(id)
             .then((data) => {
                 if (!data) { setError('Course not found.'); return; }
-                setCode(data.code || '');
-                setTitle(data.title || '');
-                setCreditHours(data.credit_hours?.toString() || '');
-                setSemester(data.semester || courseSemesters[0]);
-                setStatus(data.status || 'ACTIVE');
-                setDepartmentId(data.department_id?.toString() || '');
+                reset({
+                    code: data.code || '',
+                    title: data.title || '',
+                    credit_hours: data.credit_hours?.toString() || '',
+                    semester: data.semester || courseSemesters[0],
+                    status: data.status || 'ACTIVE',
+                    department_id: data.department_id?.toString() || '',
+                });
             })
             .catch(() => setError('Failed to load course.'))
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [id, reset]);
 
-    function validate() {
-        const errs = {};
-        if (!title.trim()) errs.title = 'Course title is required.';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-        if (!validate()) return;
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
             await updateCourse(Number(id), {
-                code: code.trim() || undefined,
-                title: title.trim(),
-                credit_hours: creditHours ? Number(creditHours) : undefined,
-                semester,
-                status,
-                department_id: departmentId ? Number(departmentId) : undefined,
+                code: values.code?.trim() || undefined,
+                title: values.title.trim(),
+                credit_hours: values.credit_hours ? Number(values.credit_hours) : undefined,
+                semester: values.semester,
+                status: values.status,
+                department_id: values.department_id ? Number(values.department_id) : undefined,
             });
             toast.success('Course updated successfully.');
             navigate('/courses');
         } catch (err) {
             toast.error(err.message || 'Failed to update course.');
-            setIsSubmitting(false);
         }
     }
 
@@ -112,47 +98,62 @@ export function EditCourse() {
           <CardDescription>Update the course code, title, and academic details.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="code">Course Code</Label>
-                <Input id="code" placeholder="e.g. CS101" value={code} disabled={isSubmitting} onChange={(e) => setCode(e.target.value)}/>
+                <Input id="code" placeholder="e.g. CS101" disabled={isSubmitting} {...register('code')}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Course Title *</Label>
-                <Input id="title" placeholder="e.g. Introduction to Programming" value={title} disabled={isSubmitting} aria-invalid={Boolean(errors.title)} onChange={(e) => { setTitle(e.target.value); setErrors((p) => ({ ...p, title: undefined })); }}/>
-                <FieldError message={errors.title}/>
+                <Input id="title" placeholder="e.g. Introduction to Programming" disabled={isSubmitting} aria-invalid={Boolean(errors.title)} aria-describedby={errors.title ? fieldErrorId('title') : undefined} {...register('title')}/>
+                <FieldError id={fieldErrorId('title')} message={errors.title?.message}/>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="creditHours">Credit Hours</Label>
-                <Input id="creditHours" type="number" min="1" max="10" value={creditHours} disabled={isSubmitting} onChange={(e) => setCreditHours(e.target.value)}/>
+                <Input id="creditHours" type="number" min="1" max="10" disabled={isSubmitting} {...register('credit_hours')}/>
               </div>
               <div className="space-y-2">
                 <Label>Department</Label>
-                <Select value={departmentId} disabled={isSubmitting} onValueChange={setDepartmentId}>
-                  <SelectTrigger><SelectValue placeholder="Select department"/></SelectTrigger>
-                  <SelectContent>
-                    {departments.map((d) => (<SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
+                <Controller control={control} name="department_id" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger id="department_id" aria-invalid={Boolean(errors.department_id)} aria-describedby={errors.department_id ? fieldErrorId('department_id') : undefined}>
+                      <SelectValue placeholder="Select department"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((d) => (<SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('department_id')} message={errors.department_id?.message}/>
               </div>
               <div className="space-y-2">
                 <Label>Semester</Label>
-                <Select value={semester} disabled={isSubmitting} onValueChange={setSemester}>
-                  <SelectTrigger><SelectValue placeholder="Select semester"/></SelectTrigger>
-                  <SelectContent>
-                    {courseSemesters.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
-                  </SelectContent>
-                </Select>
+                <Controller control={control} name="semester" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.semester)} aria-describedby={errors.semester ? fieldErrorId('semester') : undefined}>
+                      <SelectValue placeholder="Select semester"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courseSemesters.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('semester')} message={errors.semester?.message}/>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={status} disabled={isSubmitting} onValueChange={setStatus}>
-                  <SelectTrigger><SelectValue placeholder="Select status"/></SelectTrigger>
-                  <SelectContent>
-                    {courseStatuses.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
-                  </SelectContent>
-                </Select>
+                <Controller control={control} name="status" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.status)} aria-describedby={errors.status ? fieldErrorId('status') : undefined}>
+                      <SelectValue placeholder="Select status"/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courseStatuses.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('status')} message={errors.status?.message}/>
               </div>
             </div>
 

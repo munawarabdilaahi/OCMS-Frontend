@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useParams, useNavigate } from '@/lib/router';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -7,27 +9,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
+import { editSemesterSchema, emptySemesterValues } from './semester-schema.js';
 import { getAcademicYears } from '@/services/academic-years.service';
 import { getSemester, updateSemester } from '@/services/semesters.service';
 import { PageHeader } from '@/components/common/PageHeader';
 
-function FieldError({ message }) {
-    if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
-}
-
 export function EditSemester() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [name, setName] = useState('');
-    const [academicYearId, setAcademicYearId] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
     const [academicYears, setAcademicYears] = useState([]);
-    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(editSemesterSchema),
+        defaultValues: emptySemesterValues,
+    });
 
     useEffect(() => {
         getAcademicYears()
@@ -42,42 +39,32 @@ export function EditSemester() {
         getSemester(id)
             .then((data) => {
                 if (!data) { setError('Semester not found.'); return; }
-                setName(data.name || '');
-                setAcademicYearId((data.academicYearId ?? data.academic_year_id)?.toString() || '');
-                setStartDate(data.startDate || data.start_date || '');
-                setEndDate(data.endDate || data.end_date || '');
+                reset({
+                    id: String(data.id || ''),
+                    name: data.name || '',
+                    academic_year_id: (data.academicYearId ?? data.academic_year_id)?.toString() || '',
+                    start_date: data.startDate || data.start_date || '',
+                    end_date: data.endDate || data.end_date || '',
+                    status: data.status || 'ACTIVE',
+                });
             })
             .catch(() => setError('Failed to load semester.'))
             .finally(() => setLoading(false));
-    }, [id]);
+    }, [id, reset]);
 
-    function validate() {
-        const errs = {};
-        if (!name.trim()) errs.name = 'Semester name is required.';
-        if (!academicYearId) errs.academicYearId = 'Academic year is required.';
-        if (!startDate) errs.startDate = 'Start date is required.';
-        if (!endDate) errs.endDate = 'End date is required.';
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    }
-
-    async function handleSubmit(event) {
-        event.preventDefault();
-        if (!validate()) return;
-        setIsSubmitting(true);
+    async function onSubmit(values) {
         try {
             await updateSemester(id, {
-                name: name.trim(),
-                academic_year_id: Number(academicYearId),
-                start_date: startDate,
-                end_date: endDate,
+                name: values.name.trim(),
+                academic_year_id: Number(values.academic_year_id),
+                start_date: values.start_date,
+                end_date: values.end_date,
             });
             toast.success('Semester updated successfully.');
             navigate('/semesters');
         }
         catch (err) {
             toast.error(err.message || 'Failed to update semester.');
-            setIsSubmitting(false);
         }
     }
 
@@ -105,32 +92,36 @@ export function EditSemester() {
           <CardDescription>Update the semester name, academic year, and date range.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name">Semester Name *</Label>
-                <Input id="name" placeholder="e.g. Semester 1" value={name} disabled={isSubmitting} aria-invalid={Boolean(errors.name)} onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}/>
-                <FieldError message={errors.name}/>
+                <Input id="name" placeholder="e.g. Semester 1" disabled={isSubmitting} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? fieldErrorId('name') : undefined} {...register('name')}/>
+                <FieldError id={fieldErrorId('name')} message={errors.name?.message}/>
               </div>
               <div className="space-y-2">
                 <Label>Academic Year *</Label>
-                <Select value={academicYearId} disabled={isSubmitting} onValueChange={(v) => { setAcademicYearId(v); setErrors((p) => ({ ...p, academicYearId: undefined })); }}>
-                  <SelectTrigger aria-invalid={Boolean(errors.academicYearId)}><SelectValue placeholder="Select academic year..."/></SelectTrigger>
-                  <SelectContent>
-                    {academicYears.map((a) => (<SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <FieldError message={errors.academicYearId}/>
+                <Controller control={control} name="academic_year_id" render={({ field }) => (
+                  <Select value={field.value} disabled={isSubmitting} onValueChange={field.onChange}>
+                    <SelectTrigger aria-invalid={Boolean(errors.academic_year_id)} aria-describedby={errors.academic_year_id ? fieldErrorId('academic_year_id') : undefined}>
+                      <SelectValue placeholder="Select academic year..."/>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {academicYears.map((a) => (<SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                )}/>
+                <FieldError id={fieldErrorId('academic_year_id')} message={errors.academic_year_id?.message}/>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date *</Label>
-                <Input id="startDate" type="date" value={startDate} disabled={isSubmitting} aria-invalid={Boolean(errors.startDate)} onChange={(e) => { setStartDate(e.target.value); setErrors((p) => ({ ...p, startDate: undefined })); }}/>
-                <FieldError message={errors.startDate}/>
+                <Label htmlFor="start_date">Start Date *</Label>
+                <Input id="start_date" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.start_date)} aria-describedby={errors.start_date ? fieldErrorId('start_date') : undefined} {...register('start_date')}/>
+                <FieldError id={fieldErrorId('start_date')} message={errors.start_date?.message}/>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDate">End Date *</Label>
-                <Input id="endDate" type="date" value={endDate} disabled={isSubmitting} aria-invalid={Boolean(errors.endDate)} onChange={(e) => { setEndDate(e.target.value); setErrors((p) => ({ ...p, endDate: undefined })); }}/>
-                <FieldError message={errors.endDate}/>
+                <Label htmlFor="end_date">End Date *</Label>
+                <Input id="end_date" type="date" disabled={isSubmitting} aria-invalid={Boolean(errors.end_date)} aria-describedby={errors.end_date ? fieldErrorId('end_date') : undefined} {...register('end_date')}/>
+                <FieldError id={fieldErrorId('end_date')} message={errors.end_date?.message}/>
               </div>
             </div>
 

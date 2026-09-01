@@ -12,6 +12,7 @@ import { matchRoute } from '@/lib/routes';
 import { Login } from '@/features/auth/Login';
 import { ForgotPassword } from '@/features/auth/ForgotPassword';
 import { ResetPassword } from '@/features/auth/ResetPassword';
+import { NotFoundPage } from '@/features/NotFoundPage';
 
 function AppContent() {
     const pathname = usePathname() || '/';
@@ -25,7 +26,7 @@ function AppContent() {
     return (
         <DashboardLayout>
             <Suspense fallback={<PageLoader />}>
-                {Component ? <Component /> : <PageLoader />}
+                {Component ? <Component /> : <NotFoundPage />}
             </Suspense>
         </DashboardLayout>
     );

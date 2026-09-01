@@ -3,11 +3,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
-const statusStyles = {
-    Completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    Review: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    'In Progress': 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-};
+import { ACTIVITY_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
+
 export function RecentActivitiesTable({ activities }) {
     return (<Card>
       <CardHeader className="flex-row items-center justify-between gap-4">

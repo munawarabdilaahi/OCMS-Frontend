@@ -1,16 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
+import { TableSkeleton } from '@/components/common/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getRoles, createRole, updateRole, deleteRole } from '@/services/roles.service';
 import { useAuth } from '@/hooks/useAuth';
+
+const roleSchema = z.object({
+    name: z.string().min(1, 'Role name is required.').max(100),
+});
 
 const PERMISSION_LABELS = {
     'dashboard:view': 'View Dashboard',
@@ -37,8 +46,11 @@ export function RolesList() {
     const [editingRole, setEditingRole] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    const [roleName, setRoleName] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const { register, handleSubmit: rhfHandleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
+        resolver: zodResolver(roleSchema),
+        defaultValues: { name: '' },
+    });
 
     const fetchRoles = useCallback(() => {
         setLoading(true);
@@ -52,35 +64,31 @@ export function RolesList() {
 
     function openCreateDialog() {
         setEditingRole(null);
-        setRoleName('');
+        reset({ name: '' });
         setDialogOpen(true);
     }
 
     function openEditDialog(role) {
         setEditingRole(role);
-        setRoleName(role.name);
+        reset({ name: role.name });
         setDialogOpen(true);
     }
 
-    async function handleSubmit() {
-        if (!roleName.trim()) { toast.error('Role name is required.'); return; }
-        setIsSubmitting(true);
+    async function onSubmit(data) {
         try {
             if (editingRole) {
-                await updateRole(editingRole.id, { name: roleName.trim() });
+                await updateRole(editingRole.id, { name: data.name.trim() });
                 toast.success('Role updated.');
             } else {
-                await createRole({ name: roleName.trim() });
+                await createRole({ name: data.name.trim() });
                 toast.success('Role created.');
             }
             setDialogOpen(false);
-            setRoleName('');
+            reset({ name: '' });
             setEditingRole(null);
             fetchRoles();
         } catch (err) {
             toast.error(err.message || 'Failed to save role.');
-        } finally {
-            setIsSubmitting(false);
         }
     }
 
@@ -112,13 +120,14 @@ export function RolesList() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Roles & Permissions</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${roles.length} role${roles.length !== 1 ? 's' : ''} configured`}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{loading ? '' : `${roles.length} role${roles.length !== 1 ? 's' : ''} configured`}</p>
         </div>
         <Button onClick={openCreateDialog} disabled={!canManage}><Plus /> Add Role</Button>
       </div>
 
-      {error && (<Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
+      <ErrorAlert message={error} onRetry={fetchRoles} />
 
+      {loading ? <TableSkeleton /> : (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {roles.map((role) => {
             const perms = parsePermissions(role.permissions);
@@ -152,6 +161,7 @@ export function RolesList() {
             </Card>);
         })}
       </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -159,13 +169,17 @@ export function RolesList() {
             <DialogTitle>{editingRole ? 'Edit Role' : 'Create Role'}</DialogTitle>
             <DialogDescription>{editingRole ? 'Update the role name.' : 'Add a new role to the system.'}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Role Name</Label><Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="e.g. Librarian"/></div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : editingRole ? 'Update' : 'Create'}</Button>
-          </DialogFooter>
+          <form className="space-y-4" onSubmit={rhfHandleSubmit(onSubmit)}>
+            <div className="space-y-2">
+              <Label htmlFor="role-name">Role Name</Label>
+              <Input id="role-name" {...register('name')} placeholder="e.g. Librarian" aria-invalid={!!errors.name} aria-describedby={errors.name ? fieldErrorId('role-name') : undefined}/>
+              <FieldError id={fieldErrorId('role-name')} message={errors.name?.message}/>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : editingRole ? 'Update' : 'Create'}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>);

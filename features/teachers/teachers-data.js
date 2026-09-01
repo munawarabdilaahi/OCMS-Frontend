@@ -1,6 +1,5 @@
-export const TEACHER_STATUSES = ['Active', 'On Leave', 'Contract', 'Inactive', 'Retired'];
-export const teacherStatuses = TEACHER_STATUSES;
-export const TEACHER_DEPARTMENTS = [
+export const teacherStatuses = ['Active', 'On Leave', 'Contract', 'Inactive', 'Retired'];
+export const teacherDepartments = [
     'Computer Science',
     'Mathematics',
     'Physics',
@@ -10,8 +9,7 @@ export const TEACHER_DEPARTMENTS = [
     'English',
     'History',
 ];
-export const teacherDepartments = TEACHER_DEPARTMENTS;
-export const TEACHER_POSITIONS = [
+export const teacherPositions = [
     'Professor',
     'Associate Professor',
     'Assistant Professor',
@@ -19,4 +17,3 @@ export const TEACHER_POSITIONS = [
     'Lecturer',
     'Teaching Assistant',
 ];
-export const teacherPositions = TEACHER_POSITIONS;
