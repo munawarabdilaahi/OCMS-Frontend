@@ -59,3 +59,8 @@ export async function revokeAllSessionsRequest() {
     const response = await api.delete('/auth/sessions');
     return response.data?.data ?? null;
 }
+
+export async function changePasswordRequest(payload) {
+    const response = await api.post('/auth/change-password', payload);
+    return response.data?.data;
+}

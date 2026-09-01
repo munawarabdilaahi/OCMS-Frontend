@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/incompatible-library */
-import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
-import { ArrowUpDown, Download, Eye, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react';
+import { flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable, } from '@tanstack/react-table';
+import { Eye, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from '@/lib/router';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -114,18 +114,12 @@ export function StudentsDataTable({ data, onDelete, canManage = true }) {
             globalFilter,
             columnFilters,
         },
-        initialState: {
-            pagination: {
-                pageSize: 5,
-            },
-        },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
     });
     return (<div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -180,21 +174,5 @@ export function StudentsDataTable({ data, onDelete, canManage = true }) {
         </Table>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} students
-        </p>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-          </span>
-          <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            Next
-          </Button>
-        </div>
-      </div>
     </div>);
 }

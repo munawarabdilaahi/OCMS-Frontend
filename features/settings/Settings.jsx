@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/incompatible-library */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bell, MonitorCog, Palette, Save, ShieldCheck, UserCog } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -15,6 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { FieldError, fieldErrorId } from '@/components/ui/field-error';
 import { PageHeader } from '@/components/common/PageHeader';
+import { getProfile, updateProfile, getPreferences, updatePreferences, getInstitutionSettings, updateInstitutionSettings } from '@/services/settings.service';
+import { changePasswordRequest } from '@/services/auth.service';
 const phoneRegex = /^\+?[0-9\s().-]{7,20}$/;
 const generalSchema = z.object({
     institutionName: z.string().trim().min(2, 'Institution name is required'),
@@ -95,31 +98,30 @@ function SettingsCard({ icon: Icon, title, description, children }) {
     </Card>);
 }
 export function Settings() {
-    // TODO: Connect to backend settings API when available (GET /api/settings, PUT /api/settings)
-    // TODO: Connect account updates to PUT /api/auth/profile
-    // TODO: Connect security password change to PUT /api/auth/change-password
     const { user, updateUser } = useAuth();
     const { theme, setTheme } = useTheme();
+    const [loading, setLoading] = useState(true);
+
     const generalForm = useForm({
         resolver: zodResolver(generalSchema),
         defaultValues: {
-            institutionName: 'Online Campus Management System',
-            campusCode: 'OCMS-MAIN',
-            academicYear: '2026',
-            timezone: 'Africa/Nairobi',
-            supportEmail: 'support@ocms.edu',
-            supportPhone: '+254 700 000 000',
-            address: 'Main Campus Administration Block',
+            institutionName: '',
+            campusCode: '',
+            academicYear: '',
+            timezone: '',
+            supportEmail: '',
+            supportPhone: '',
+            address: '',
         },
     });
     const accountForm = useForm({
         resolver: zodResolver(accountSchema),
         defaultValues: {
-            name: user?.name ?? '',
-            title: user?.role ?? 'Administrator',
-            phone: '+254 711 222 333',
-            email: user?.email ?? '',
-            recoveryEmail: user?.email ?? '',
+            name: '',
+            title: '',
+            phone: '',
+            email: '',
+            recoveryEmail: '',
         },
     });
     const securityForm = useForm({
@@ -145,15 +147,70 @@ export function Settings() {
         resolver: zodResolver(appearanceSchema),
         defaultValues: {
             theme,
-            density: 'comfortable',
-            accentColor: 'emerald',
+            density: '',
+            accentColor: '',
         },
     });
+
+    useEffect(() => {
+        async function loadSettings() {
+            setLoading(true);
+            const [profileResult, prefsResult, instResult] = await Promise.allSettled([
+                getProfile(),
+                getPreferences(),
+                getInstitutionSettings(),
+            ]);
+            if (profileResult.status === 'fulfilled' && profileResult.value) {
+                const p = profileResult.value;
+                accountForm.reset({
+                    name: p.name ?? user?.name ?? '',
+                    title: p.title ?? user?.role ?? 'Administrator',
+                    phone: p.phone ?? '',
+                    email: p.email ?? user?.email ?? '',
+                    recoveryEmail: p.recoveryEmail ?? user?.email ?? '',
+                });
+            }
+            if (prefsResult.status === 'fulfilled' && prefsResult.value) {
+                const pr = prefsResult.value;
+                notificationsForm.reset({
+                    emailAlerts: pr.emailAlerts ?? true,
+                    smsAlerts: pr.smsAlerts ?? false,
+                    paymentAlerts: pr.paymentAlerts ?? true,
+                    attendanceAlerts: pr.attendanceAlerts ?? true,
+                    digestFrequency: pr.digestFrequency ?? 'daily',
+                });
+                appearanceForm.reset({
+                    theme: pr.theme ?? theme,
+                    density: pr.density ?? 'comfortable',
+                    accentColor: pr.accentColor ?? 'emerald',
+                });
+            }
+            if (instResult.status === 'fulfilled' && instResult.value) {
+                const i = instResult.value;
+                generalForm.reset({
+                    institutionName: i.institutionName ?? '',
+                    campusCode: i.campusCode ?? '',
+                    academicYear: i.academicYear ?? '',
+                    timezone: i.timezone ?? '',
+                    supportEmail: i.supportEmail ?? '',
+                    supportPhone: i.supportPhone ?? '',
+                    address: i.address ?? '',
+                });
+            }
+            setLoading(false);
+        }
+        loadSettings();
+    }, []);
+
     const handleInvalid = () => toast.error('Please fix the highlighted fields before saving.');
-    const save = (message, callback) => (values) => {
-        callback?.(values);
-        toast.success(message);
-    };
+
+    if (loading) {
+        return (<div className="space-y-6">
+            <PageHeader title="Settings" description="Manage profile, account security, notifications, appearance, and system defaults." />
+            <p className="text-sm text-muted-foreground">Loading settings...</p>
+        </div>);
+    }
+
     return (<div className="space-y-6">
       <PageHeader title="Settings" description="Manage profile, account security, notifications, appearance, and system defaults." />
 
@@ -173,7 +230,7 @@ export function Settings() {
         <div className="min-w-0">
           <TabsContent value="general" className="mt-0">
             <SettingsCard icon={MonitorCog} title="General Settings" description="Institution identity and system defaults.">
-              <form className="grid gap-4" onSubmit={generalForm.handleSubmit(save('General settings saved.'), handleInvalid)} onReset={() => generalForm.reset()}>
+              <form className="grid gap-4" onSubmit={generalForm.handleSubmit(async (values) => { await updateInstitutionSettings(values); toast.success('General settings saved.'); }, handleInvalid)} onReset={() => generalForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField id="institutionName" label="Institution Name" register={generalForm.register} error={generalForm.formState.errors.institutionName}/>
                   <TextField id="campusCode" label="Campus Code" register={generalForm.register} error={generalForm.formState.errors.campusCode}/>
@@ -194,7 +251,7 @@ export function Settings() {
 
           <TabsContent value="account" className="mt-0">
             <SettingsCard icon={UserCog} title="Account Settings" description="Update your profile, email, and recovery details.">
-              <form className="grid gap-4" onSubmit={accountForm.handleSubmit(save('Profile and email updated.', (values) => updateUser({ name: values.name, email: values.email })), handleInvalid)} onReset={() => accountForm.reset()}>
+              <form className="grid gap-4" onSubmit={accountForm.handleSubmit(async (values) => { await updateProfile(values); updateUser({ name: values.name, email: values.email }); toast.success('Profile and email updated.'); }, handleInvalid)} onReset={() => accountForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField id="name" label="Full Name" register={accountForm.register} error={accountForm.formState.errors.name}/>
                   <TextField id="title" label="Role or Title" register={accountForm.register} error={accountForm.formState.errors.title}/>
@@ -209,7 +266,7 @@ export function Settings() {
 
           <TabsContent value="security" className="mt-0">
             <SettingsCard icon={ShieldCheck} title="Security Settings" description="Change password and session behavior.">
-              <form className="grid gap-4" onSubmit={securityForm.handleSubmit(save('Password and security settings updated.', () => securityForm.reset({ ...securityForm.getValues(), currentPassword: '', newPassword: '', confirmPassword: '' })), handleInvalid)} onReset={() => securityForm.reset()}>
+              <form className="grid gap-4" onSubmit={securityForm.handleSubmit(async (values) => { await changePasswordRequest({ currentPassword: values.currentPassword, newPassword: values.newPassword }); securityForm.reset({ ...securityForm.getValues(), currentPassword: '', newPassword: '', confirmPassword: '' }); toast.success('Password and security settings updated.'); }, handleInvalid)} onReset={() => securityForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField id="currentPassword" label="Current Password" type="password" register={securityForm.register} error={securityForm.formState.errors.currentPassword}/>
                   <TextField id="newPassword" label="New Password" type="password" register={securityForm.register} error={securityForm.formState.errors.newPassword}/>
@@ -223,7 +280,7 @@ export function Settings() {
 
           <TabsContent value="notifications" className="mt-0">
             <SettingsCard icon={Bell} title="Notification Settings" description="Choose alerts for academic and finance events.">
-              <form className="grid gap-4" onSubmit={notificationsForm.handleSubmit(save('Notification settings saved.'), handleInvalid)} onReset={() => notificationsForm.reset()}>
+              <form className="grid gap-4" onSubmit={notificationsForm.handleSubmit(async (values) => { await updatePreferences(values); toast.success('Notification settings saved.'); }, handleInvalid)} onReset={() => notificationsForm.reset()}>
                 <div className="grid gap-3 md:grid-cols-2">
                   {[
             ['emailAlerts', 'Email alerts'],
@@ -250,7 +307,7 @@ export function Settings() {
 
           <TabsContent value="appearance" className="mt-0">
             <SettingsCard icon={Palette} title="Appearance Settings" description="Theme and display preferences.">
-              <form className="grid gap-4" onSubmit={appearanceForm.handleSubmit(save('Theme settings saved.', (values) => setTheme(values.theme)), handleInvalid)} onReset={() => appearanceForm.reset()}>
+              <form className="grid gap-4" onSubmit={appearanceForm.handleSubmit(async (values) => { await updatePreferences(values); setTheme(values.theme); toast.success('Theme settings saved.'); }, handleInvalid)} onReset={() => appearanceForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Theme</Label>

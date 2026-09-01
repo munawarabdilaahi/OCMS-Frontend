@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Link } from '@/lib/router';
-import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Search, Download, Pencil, Trash2, Eye, } from "lucide-react";
+import { flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable, } from "@tanstack/react-table";
+import { MoreHorizontal, Search, Pencil, Trash2, Eye, } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from "@/components/ui/input";
@@ -82,11 +82,9 @@ export function TeachersDataTable({ data, onDelete }) {
         data,
         columns,
         state: { sorting, globalFilter },
-        initialState: { pagination: { pageSize: 10 } },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
     });
@@ -142,21 +140,5 @@ export function TeachersDataTable({ data, onDelete }) {
         </Table>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length} teachers
-        </p>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-          </span>
-          <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-            Next
-          </Button>
-        </div>
-      </div>
     </div>);
 }
