@@ -1,6 +1,13 @@
 import axios from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const CSRF_METHODS = new Set(['post', 'put', 'patch', 'delete']);
+
+function getCsrfToken() {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
 
 export const api = axios.create({
     baseURL: API_BASE,
@@ -9,6 +16,16 @@ export const api = axios.create({
     },
     withCredentials: true,
     timeout: 30000,
+});
+
+api.interceptors.request.use((config) => {
+    if (CSRF_METHODS.has(config.method?.toLowerCase())) {
+        const token = getCsrfToken();
+        if (token) {
+            config.headers['X-CSRF-Token'] = token;
+        }
+    }
+    return config;
 });
 
 let refreshPromise = null;

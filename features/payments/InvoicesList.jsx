@@ -167,7 +167,7 @@ export function InvoicesList() {
         </Card>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchData} />
+      {error && <ErrorAlert message={error} onRetry={fetchData} />}
 
       <Card>
         <CardHeader>

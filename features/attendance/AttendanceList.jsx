@@ -224,7 +224,7 @@ export function AttendanceList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchAttendance} />
+      {error && <ErrorAlert message={error} onRetry={fetchAttendance} />}
 
       <AttendanceDashboardCards stats={stats}/>
 

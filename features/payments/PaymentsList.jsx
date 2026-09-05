@@ -83,7 +83,7 @@ export function PaymentsList() {
         <Card><CardHeader className="pb-2"><CardTitle className="text-base">Completed</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{stats.completed_count}</p></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-base">Pending</CardTitle></CardHeader><CardContent><p className="text-2xl font-semibold">{stats.pending_count}</p></CardContent></Card>
       </div>)}
-      <ErrorAlert message={error} onRetry={fetchData} />
+      {error && <ErrorAlert message={error} onRetry={fetchData} />}
       <Card>
         <CardHeader>
           <CardTitle>{isStudent ? 'My Payment Records' : 'Payment Records'}</CardTitle>

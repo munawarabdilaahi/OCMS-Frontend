@@ -125,7 +125,7 @@ export function RolesList() {
         <Button onClick={openCreateDialog} disabled={!canManage}><Plus /> Add Role</Button>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchRoles} />
+      {error && <ErrorAlert message={error} onRetry={fetchRoles} />}
 
       {loading ? <TableSkeleton /> : (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

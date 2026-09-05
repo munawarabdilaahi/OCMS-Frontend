@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 export function ErrorAlert({ title = 'Error', message, onRetry }) {
+    if (!message) return null;
     return (
         <Alert variant="destructive">
             <AlertTitle>{title}</AlertTitle>

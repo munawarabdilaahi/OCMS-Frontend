@@ -92,7 +92,7 @@ export function CoursesList() {
         </div>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><BookOpen className="size-5"/></span>
       </div>
-      <ErrorAlert message={error} onRetry={fetchCourses} />
+      {error && <ErrorAlert message={error} onRetry={fetchCourses} />}
       <Card>
         <CardHeader>
           <CardTitle>{isStudent ? 'My Course Directory' : 'Course Directory'}</CardTitle>

@@ -68,7 +68,7 @@ export function AttendanceReport() {
         </Button>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchReport} />
+      {error && <ErrorAlert message={error} onRetry={fetchReport} />}
 
       {stats && (<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>

@@ -70,7 +70,7 @@ export function TeachersList() {
         onConfirm={handleDelete}
       />
       <PageHeader title="Teachers" description={`${totalCount} teacher${totalCount !== 1 ? 's' : ''} registered`} actionLabel="+ Add Teacher" actionTo="/teachers/add" loading={loading} />
-      <ErrorAlert message={error} onRetry={fetchTeachers} />
+      {error && <ErrorAlert message={error} onRetry={fetchTeachers} />}
       <Card>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

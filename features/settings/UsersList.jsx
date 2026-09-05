@@ -26,10 +26,18 @@ import { SortButton } from '@/components/ui/data-table';
 import { useAuth } from '@/hooks/useAuth';
 import { TEACHER_STATUS_STYLES as statusStyles } from '@/lib/status-styles';
 
+const passwordPolicy = z.string()
+    .min(8, 'Password must be at least 8 characters long.')
+    .max(128, 'Password must not exceed 128 characters.')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter.')
+    .regex(/\d/, 'Password must contain at least one digit.')
+    .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/, 'Password must contain at least one special character.');
+
 const createUserSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
     email: z.string().email('Enter a valid email address.'),
-    password: z.string().min(6, 'Password must be at least 6 characters.'),
+    password: passwordPolicy,
     role_id: z.string().min(1, 'Role is required.'),
     status: z.string().min(1, 'Status is required.'),
 });
@@ -37,7 +45,7 @@ const createUserSchema = z.object({
 const editUserSchema = z.object({
     name: z.string().min(1, 'Name is required.'),
     email: z.string().email('Enter a valid email address.'),
-    password: z.string().optional(),
+    password: z.union([passwordPolicy, z.literal('')]).optional(),
     role_id: z.string().min(1, 'Role is required.'),
     status: z.string().min(1, 'Status is required.'),
 });
@@ -76,7 +84,7 @@ export function UsersList() {
                 setTotalCount(usersRes?.meta?.total ?? data.length);
                 setRoles(Array.isArray(rolesData?.data) ? rolesData.data : Array.isArray(rolesData) ? rolesData : []);
             })
-            .catch(() => setError('Failed to load users.'))
+            .catch((err) => setError(err.message || 'Failed to load users.'))
             .finally(() => setLoading(false));
     }, [search, page]);
 
@@ -154,7 +162,7 @@ export function UsersList() {
         </div>
         <Button onClick={openCreate} disabled={!canManage}><Plus /> Add User</Button>
       </div>
-      <ErrorAlert message={error} onRetry={fetchData} />
+      {error && <ErrorAlert message={error} onRetry={fetchData} />}
       <Card>
         <CardHeader><CardTitle>User Management</CardTitle><CardDescription>Manage user accounts, roles, and status.</CardDescription></CardHeader>
         <CardContent className="space-y-4">

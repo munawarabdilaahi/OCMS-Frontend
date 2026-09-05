@@ -255,7 +255,7 @@ export function FacultiesList() {
         </div>
       )}
 
-      <ErrorAlert message={error} onRetry={fetchFaculties} />
+      {error && <ErrorAlert message={error} onRetry={fetchFaculties} />}
 
       <Card>
         <CardHeader>

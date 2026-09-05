@@ -111,7 +111,7 @@ export function DepartmentsList() {
         <div><h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Departments</h1><p className="mt-1 text-sm text-muted-foreground">{loading ? 'Loading...' : `${totalCount} department${totalCount !== 1 ? 's' : ''} registered`}</p></div>
         <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Building2 className="size-5"/></span>
       </div>
-      <ErrorAlert message={error} onRetry={fetchDepartments} />
+      {error && <ErrorAlert message={error} onRetry={fetchDepartments} />}
       <Card>
         <CardHeader><CardTitle>Department Directory</CardTitle><CardDescription>Search, filter, paginate, export, and manage department records.</CardDescription></CardHeader>
         <CardContent className="space-y-4">

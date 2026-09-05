@@ -195,7 +195,7 @@ export function FeesList() {
         </div>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchData} />
+      {error && <ErrorAlert message={error} onRetry={fetchData} />}
 
       <Card>
         <CardContent className="pt-6">

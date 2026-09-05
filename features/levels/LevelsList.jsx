@@ -226,7 +226,7 @@ export function LevelsList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchLevels} />
+      {error && <ErrorAlert message={error} onRetry={fetchLevels} />}
 
       <Card>
         <CardHeader>

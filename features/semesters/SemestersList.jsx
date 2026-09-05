@@ -227,7 +227,7 @@ export function SemestersList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchSemesters} />
+      {error && <ErrorAlert message={error} onRetry={fetchSemesters} />}
 
       <Card>
         <CardHeader>

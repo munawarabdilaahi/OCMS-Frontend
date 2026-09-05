@@ -222,7 +222,7 @@ export function AcademicYearsList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchAcademicYears} />
+      {error && <ErrorAlert message={error} onRetry={fetchAcademicYears} />}
 
       <Card>
         <CardHeader>

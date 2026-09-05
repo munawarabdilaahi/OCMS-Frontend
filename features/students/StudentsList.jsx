@@ -81,7 +81,7 @@ export function StudentsList() {
         onConfirm={handleDelete}
       />
       <PageHeader title="Students" description={`${totalCount} student${totalCount !== 1 ? 's' : ''} registered`} actionLabel={can('students:manage') ? '+ Add Student' : undefined} actionTo={can('students:manage') ? '/students/add' : undefined} loading={loading} />
-      <ErrorAlert message={error} onRetry={fetchStudents} />
+      {error && <ErrorAlert message={error} onRetry={fetchStudents} />}
       <Card>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

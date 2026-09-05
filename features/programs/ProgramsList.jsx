@@ -231,7 +231,7 @@ export function ProgramsList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchPrograms} />
+      {error && <ErrorAlert message={error} onRetry={fetchPrograms} />}
 
       <Card>
         <CardHeader>

@@ -235,7 +235,7 @@ export function ResultsList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchResults} />
+      {error && <ErrorAlert message={error} onRetry={fetchResults} />}
 
       <Card>
         <CardHeader>

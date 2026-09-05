@@ -37,9 +37,15 @@ const accountSchema = z.object({
 });
 const securitySchema = z
     .object({
-    currentPassword: z.string().min(6, 'Current password is required'),
-    newPassword: z.string().min(8, 'Use at least 8 characters'),
-    confirmPassword: z.string().min(8, 'Confirm your new password'),
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string()
+        .min(8, 'Password must be at least 8 characters long.')
+        .max(128, 'Password must not exceed 128 characters.')
+        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter.')
+        .regex(/[a-z]/, 'Password must contain at least one lowercase letter.')
+        .regex(/\d/, 'Password must contain at least one digit.')
+        .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/, 'Password must contain at least one special character.'),
+    confirmPassword: z.string().min(1, 'Confirm your new password'),
     sessionTimeout: z.string().trim().min(1, 'Session timeout is required'),
 })
     .refine((values) => values.newPassword === values.confirmPassword, {
@@ -230,7 +236,7 @@ export function Settings() {
         <div className="min-w-0">
           <TabsContent value="general" className="mt-0">
             <SettingsCard icon={MonitorCog} title="General Settings" description="Institution identity and system defaults.">
-              <form className="grid gap-4" onSubmit={generalForm.handleSubmit(async (values) => { await updateInstitutionSettings(values); toast.success('General settings saved.'); }, handleInvalid)} onReset={() => generalForm.reset()}>
+              <form className="grid gap-4" onSubmit={generalForm.handleSubmit(async (values) => { try { await updateInstitutionSettings(values); toast.success('General settings saved.'); } catch (err) { toast.error(err.message || 'Failed to save general settings.'); } }, handleInvalid)} onReset={() => generalForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField id="institutionName" label="Institution Name" register={generalForm.register} error={generalForm.formState.errors.institutionName}/>
                   <TextField id="campusCode" label="Campus Code" register={generalForm.register} error={generalForm.formState.errors.campusCode}/>
@@ -251,7 +257,7 @@ export function Settings() {
 
           <TabsContent value="account" className="mt-0">
             <SettingsCard icon={UserCog} title="Account Settings" description="Update your profile, email, and recovery details.">
-              <form className="grid gap-4" onSubmit={accountForm.handleSubmit(async (values) => { await updateProfile(values); updateUser({ name: values.name, email: values.email }); toast.success('Profile and email updated.'); }, handleInvalid)} onReset={() => accountForm.reset()}>
+              <form className="grid gap-4" onSubmit={accountForm.handleSubmit(async (values) => { try { await updateProfile(values); updateUser({ name: values.name, email: values.email }); toast.success('Profile and email updated.'); } catch (err) { toast.error(err.message || 'Failed to update profile.'); } }, handleInvalid)} onReset={() => accountForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField id="name" label="Full Name" register={accountForm.register} error={accountForm.formState.errors.name}/>
                   <TextField id="title" label="Role or Title" register={accountForm.register} error={accountForm.formState.errors.title}/>
@@ -266,7 +272,7 @@ export function Settings() {
 
           <TabsContent value="security" className="mt-0">
             <SettingsCard icon={ShieldCheck} title="Security Settings" description="Change password and session behavior.">
-              <form className="grid gap-4" onSubmit={securityForm.handleSubmit(async (values) => { await changePasswordRequest({ currentPassword: values.currentPassword, newPassword: values.newPassword }); securityForm.reset({ ...securityForm.getValues(), currentPassword: '', newPassword: '', confirmPassword: '' }); toast.success('Password and security settings updated.'); }, handleInvalid)} onReset={() => securityForm.reset()}>
+              <form className="grid gap-4" onSubmit={securityForm.handleSubmit(async (values) => { try { await changePasswordRequest({ currentPassword: values.currentPassword, newPassword: values.newPassword, confirmPassword: values.newPassword }); securityForm.reset({ ...securityForm.getValues(), currentPassword: '', newPassword: '', confirmPassword: '' }); toast.success('Password and security settings updated.'); } catch (err) { toast.error(err.message || 'Failed to update password.'); } }, handleInvalid)} onReset={() => securityForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField id="currentPassword" label="Current Password" type="password" register={securityForm.register} error={securityForm.formState.errors.currentPassword}/>
                   <TextField id="newPassword" label="New Password" type="password" register={securityForm.register} error={securityForm.formState.errors.newPassword}/>
@@ -280,7 +286,7 @@ export function Settings() {
 
           <TabsContent value="notifications" className="mt-0">
             <SettingsCard icon={Bell} title="Notification Settings" description="Choose alerts for academic and finance events.">
-              <form className="grid gap-4" onSubmit={notificationsForm.handleSubmit(async (values) => { await updatePreferences(values); toast.success('Notification settings saved.'); }, handleInvalid)} onReset={() => notificationsForm.reset()}>
+              <form className="grid gap-4" onSubmit={notificationsForm.handleSubmit(async (values) => { try { await updatePreferences(values); toast.success('Notification settings saved.'); } catch (err) { toast.error(err.message || 'Failed to save notification settings.'); } }, handleInvalid)} onReset={() => notificationsForm.reset()}>
                 <div className="grid gap-3 md:grid-cols-2">
                   {[
             ['emailAlerts', 'Email alerts'],
@@ -307,7 +313,7 @@ export function Settings() {
 
           <TabsContent value="appearance" className="mt-0">
             <SettingsCard icon={Palette} title="Appearance Settings" description="Theme and display preferences.">
-              <form className="grid gap-4" onSubmit={appearanceForm.handleSubmit(async (values) => { await updatePreferences(values); setTheme(values.theme); toast.success('Theme settings saved.'); }, handleInvalid)} onReset={() => appearanceForm.reset()}>
+              <form className="grid gap-4" onSubmit={appearanceForm.handleSubmit(async (values) => { try { await updatePreferences(values); setTheme(values.theme); toast.success('Theme settings saved.'); } catch (err) { toast.error(err.message || 'Failed to save theme settings.'); } }, handleInvalid)} onReset={() => appearanceForm.reset()}>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label>Theme</Label>

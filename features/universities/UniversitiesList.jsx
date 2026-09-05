@@ -284,7 +284,7 @@ export function UniversitiesList() {
         </div>
       )}
 
-      <ErrorAlert message={error} onRetry={fetchUniversities} />
+      {error && <ErrorAlert message={error} onRetry={fetchUniversities} />}
 
       <Card>
         <CardHeader>

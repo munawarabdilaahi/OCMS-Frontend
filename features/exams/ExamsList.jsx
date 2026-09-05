@@ -218,7 +218,7 @@ export function ExamsList() {
         </span>
       </div>
 
-      <ErrorAlert message={error} onRetry={fetchExams} />
+      {error && <ErrorAlert message={error} onRetry={fetchExams} />}
 
       <Card>
         <CardHeader>
